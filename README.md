@@ -221,6 +221,48 @@ For larger changes, please open an issue first.
 
 See [`readme.txt`](readme.txt) for the WordPress.org changelog, or the [Releases](https://github.com/featherr/feather-performance/releases) page for tagged builds.
 
+## [0.2.4] — 2026-05-11
+
+### Fixed
+- **`BelowFoldRenderer` no longer carpet-bombs every section with `content-visibility:auto`.** Production A/B testing isolated this optimizer as the sole cause of a CLS spike from 0.019 to 0.908. Root cause: the optimizer auto-applied `content-visibility:auto` with a fixed `contain-intrinsic-size: 0 800px` placeholder to every second-and-onwards `.elementor-section` / `.e-con` / `.wp-block-group` / `article`. The 800px placeholder almost never matched the real section height, and every mismatch registered as a layout shift Lighthouse counted.
+
+### Changed
+- **`f.media.below_fold_render` is now opt-in per section.** Users add a `feather-cv` class in Elementor → Advanced → CSS Classes. Sized variants `feather-cv-300` / `400` / `500` / `600` / `700` / `900` / `1000` / `1200` / `1500` / `2000` set a matching intrinsic-size placeholder so the section reserves its real height. Plain `feather-cv` defaults to 800px. Users who had the toggle on and were silently hitting the CLS regression keep their toggle state but stop hitting the bug; the optimization returns when they opt in deliberately.
+
+## [0.2.3] — 2026-05-11
+
+### Added
+- **`ElementCacheForcer` optimizer (gated).** New feature `f.elementor.element_cache`. `pre_option_*` filter forces Elementor's `e_element_cache` experiment active so each widget's rendered HTML is cached by settings hash. Static widgets (Heading, Image, Text, Button, Spacer, Divider, Icon) skip `render_content()` entirely on cache hits. Targets the dominant Elementor TTFB cost — per-widget render execution — that A/B testing on jawlah.co isolated at ~3.7s per request. Pages with many widgets typically drop from 2-3s renders to 300-500ms. Default-off because custom widgets that read dynamic data inside `render_content()` without declaring it can serve stale output.
+
+### Changed
+- **`f.elementor.css_print_external` is now default-ON for new installs.** The v0.2.1 default of OFF left fresh installs shipping ~700 KB of inlined CSS in every HTML response; defaulting on makes Elementor emit external cacheable `.css` files instead. Existing users keep their stored toggle state. Impact metadata bumped from MEDIUM to HIGH. Description now reminds users to run **Elementor → Tools → Regenerate Files & Data** after enabling.
+
+## [0.2.2] — 2026-05-11
+
+### Fixed
+- **CLS regression from v0.2.1 `ExperimentForcer`.** Production sites hit CLS spikes (0.482 measured) after v0.2.1 began force-activating `e_lazyload`, `e_optimized_assets_loading`, and `e_css_smooth_scroll`. `e_lazyload` lazy-loaded above-fold images on sites whose images lacked explicit `width`/`height` attrs; `e_optimized_assets_loading` requires `Elementor → Tools → Regenerate Files & Data` first or widgets render briefly unstyled. Reverted: `ExperimentForcer` now forces only the original 2 experiments (`e_font_icon_svg`, `e_optimized_markup`). v0.2.0 default behaviour restored for everyone.
+- **`ImageDimensionsAdder` now also filters `elementor/widget/render_content`.** Elementor renders widget HTML through its own pipeline that bypasses `the_content`; the previous coverage missed Image and Image Box widget output entirely. Root-cause fix for the CLS path that v0.2.1's `e_lazyload` exposed.
+
+### Added
+- **`ExtraExperimentForcer` optimizer (gated, opt-in).** New feature `f.elementor.force_extra_experiments`. The three experiments that v0.2.1 force-enabled by default are now reachable behind an opt-in flag, with the description warning to regenerate Elementor files and pair with Auto-fix image dimensions before enabling.
+
+## [0.2.1] — 2026-05-11
+
+### Added
+- **`CssPrintMethodEnforcer` optimizer.** New feature `f.elementor.css_print_external`. `pre_option_*` filter short-circuits `elementor_css_print_method` so Elementor emits cacheable external `.css` files per post instead of inlining widget CSS in every HTML response. No database write.
+- **`FrontendLocalizeTrimmer` optimizer.** New feature `f.elementor.localize_trim`. Strips editor-only keys (`i18n`, `loaderUrl`, `beta`, non-edit `environmentMode`) from the `elementorFrontendConfig` JSON inlined on every page. Saves 1–5 KB per pageview.
+- **`LoadingOverlayRemover` optimizer.** New feature `f.elementor.loading_overlay`. Pure-CSS hide of `#elementor-loading` / `.elementor-loading-overlay` at `wp_head:0`. On Feather-optimized sites the page paints fully before JS runs, so the overlay only delays perceived first paint.
+- **`CssOverridesEmitter` optimizer.** New feature `f.elementor.css_overrides_cls`. Inlines ~2 KB of CSS on Elementor pages addressing CLS on image, image-box, video, counter, and carousel widgets; reserves a 16:9 ratio for video embeds; respects `prefers-reduced-motion`; strips interactive widgets from print output.
+- **`WidgetLazyInit` optimizer (gated).** New feature `f.elementor.widget_lazy_init`. IntersectionObserver-driven init for Swiper carousels, animated counters, Vimeo/YouTube iframes, and entrance animations. Above-fold widgets boot immediately; below-fold wait until the section enters the viewport. Ships `assets/js/widget-lazy-init.js`. Companion to `JsDeferer` — that defers script parse, this defers the work the script does.
+
+### Fixed
+- **`ElementorPageDetector` no longer keeps Elementor assets on feeds, attachments, and 404s.** The previous behaviour returned `true` (keep assets) for any request with `get_queried_object_id() <= 0`, which leaked the entire Elementor frontend bundle onto RSS feeds, attachment pages, and 404 templates. Now explicitly returns `false` for `is_feed()`, `is_attachment()`, and `is_404()`. Archive / search behavior unchanged.
+- **`GoogleFontsDisabler` now also dequeues Kit-level font handles.** `elementor-google-fonts` and `e-google-fonts` (introduced in Elementor 3.8+) bypass the `elementor/frontend/print_google_fonts` filter; the optimizer now late-dequeues and deregisters them at `wp_print_styles:100`.
+- **`BelowFoldRenderer` selector now matches Flexbox Container.** The previous selector targeted only `.elementor-section` (legacy Section/Column layout) and missed `.e-con` (Flexbox Container, default on Elementor 3.6+).
+
+### Changed
+- **`ExperimentForcer` extended.** Now force-activates `e_optimized_assets_loading`, `e_lazyload`, and `e_css_smooth_scroll` in addition to the original `e_font_icon_svg` and `e_optimized_markup`. *(Reverted in v0.2.2 — see below.)*
+
 ## [0.2.0] — 2026-05-11
 
 ### Added
