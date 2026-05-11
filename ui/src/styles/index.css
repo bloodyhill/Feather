@@ -1,0 +1,1044 @@
+/**
+ * Feather admin styles — built on the v3 brand system from style guide.html.
+ *
+ * Token layout:
+ *   - Brand tokens (orange, ember, cream, bone, ink, graphite, mist, sage)
+ *     are constants and never change.
+ *   - Semantic tokens (--feather-bg, --feather-text, etc.) are remapped per
+ *     theme via [data-theme="dark"] / [data-theme="light"] / system default.
+ *
+ * Typography target: Geist 600 with -3.5% tracking, fall back to Inter, then
+ * the system stack. Geist is *not* loaded from Google Fonts (we don't make
+ * remote calls in admin) — if a user wants it, drop a self-hosted @font-face
+ * declaration into a child plugin or the theme.
+ */
+
+:root {
+	/* Brand constants. */
+	--feather-orange: #ff6a1f;
+	--feather-ember: #c84a0e;
+	--feather-cream: #faf6f1;
+	--feather-bone: #f1ece3;
+	--feather-ink: #0f0f10;
+	--feather-graphite: #2a2a2d;
+	--feather-mist: #8a8a90;
+	--feather-sage: #4a7c59;
+
+	/* Semantic tokens (default = light theme). */
+	--feather-bg: var( --feather-cream );
+	--feather-surface: #ffffff;
+	--feather-surface-2: var( --feather-bone );
+	--feather-border: rgba( 15, 15, 16, 0.08 );
+	--feather-border-strong: rgba( 15, 15, 16, 0.16 );
+	--feather-text: var( --feather-ink );
+	--feather-text-muted: var( --feather-mist );
+	--feather-text-subtle: var( --feather-graphite );
+	--feather-accent: var( --feather-orange );
+	--feather-accent-hover: var( --feather-ember );
+	--feather-accent-fg: var( --feather-ink );
+	--feather-success: var( --feather-sage );
+	--feather-warning: #b8651a;
+	--feather-danger: #b8341a;
+
+	/* Misc. */
+	--feather-radius: 10px;
+	--feather-radius-sm: 6px;
+	--feather-shadow-sm: 0 1px 3px rgba( 15, 15, 16, 0.04 );
+	--feather-shadow: 0 1px 3px rgba( 15, 15, 16, 0.04 ),
+		0 8px 24px rgba( 15, 15, 16, 0.06 );
+
+	--feather-font-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont,
+		'Segoe UI', Roboto, sans-serif;
+	--feather-font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace,
+		SFMono-Regular, Menlo, monospace;
+}
+
+/* Dark theme — explicit. */
+[data-theme='dark'] {
+	--feather-bg: var( --feather-ink );
+	--feather-surface: var( --feather-graphite );
+	--feather-surface-2: #1a1a1d;
+	--feather-border: rgba( 250, 246, 241, 0.1 );
+	--feather-border-strong: rgba( 250, 246, 241, 0.18 );
+	--feather-text: var( --feather-cream );
+	--feather-text-muted: var( --feather-mist );
+	--feather-text-subtle: var( --feather-bone );
+	--feather-accent-fg: var( --feather-ink );
+}
+
+/* System theme: follow OS preference. */
+@media ( prefers-color-scheme: dark ) {
+	[data-theme='system'] {
+		--feather-bg: var( --feather-ink );
+		--feather-surface: var( --feather-graphite );
+		--feather-surface-2: #1a1a1d;
+		--feather-border: rgba( 250, 246, 241, 0.1 );
+		--feather-border-strong: rgba( 250, 246, 241, 0.18 );
+		--feather-text: var( --feather-cream );
+		--feather-text-muted: var( --feather-mist );
+		--feather-text-subtle: var( --feather-bone );
+		--feather-accent-fg: var( --feather-ink );
+	}
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Page chrome — strip WP's default admin padding inside our wrap.
+ * ────────────────────────────────────────────────────────────────────── */
+
+#feather-admin-wrap.wrap {
+	margin: 0 0 0 -20px;
+	max-width: none;
+	background: var( --feather-bg );
+	color: var( --feather-text );
+	min-height: calc( 100vh - 32px );
+	font-family: var( --feather-font-sans );
+	font-feature-settings: 'ss01', 'cv11', 'tnum';
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+#feather-admin-wrap > h1 {
+	display: none;
+}
+
+/*
+ * Defensive size guard. WordPress applies `.wrap img { max-width: 100%; height: auto; }`
+ * which can interact badly with intrinsic-sized images. We constrain every <img>
+ * inside our shell to a sane upper bound, then unset the bound for any element
+ * that opts in via the `feather-uncapped` class.
+ */
+#feather-admin-wrap img {
+	max-width: 100%;
+	max-height: 320px;
+	height: auto;
+}
+
+#feather-admin-wrap .feather-uncapped {
+	max-height: none;
+}
+
+.feather-wordmark img {
+	width: 22px;
+	height: 22px;
+	max-width: 22px;
+	max-height: 22px;
+	object-fit: contain;
+	margin-right: -0.06em;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Layout: topbar / sidebar / main grid.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-app {
+	display: grid;
+	grid-template-columns: 220px minmax( 0, 1fr );
+	grid-template-rows: 60px minmax( 0, 1fr );
+	grid-template-areas:
+		'topbar topbar'
+		'sidebar main';
+	min-height: calc( 100vh - 32px );
+}
+
+.feather-topbar {
+	grid-area: topbar;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 24px;
+	background: var( --feather-surface );
+	border-bottom: 1px solid var( --feather-border );
+}
+
+.feather-topbar-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* Theme toggle button. */
+.feather-theme-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border: 1px solid var( --feather-border );
+	border-radius: 999px;
+	background: transparent;
+	color: var( --feather-text-subtle );
+	cursor: pointer;
+	transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.feather-theme-toggle:hover,
+.feather-theme-toggle:focus {
+	background: var( --feather-surface-2 );
+	color: var( --feather-text );
+	border-color: var( --feather-border-strong );
+	outline: none;
+}
+
+.feather-theme-toggle:focus-visible {
+	outline: 2px solid var( --feather-accent );
+	outline-offset: 2px;
+}
+
+.feather-theme-toggle:disabled {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+.feather-wordmark {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.18em;
+	font-family: var( --feather-font-sans );
+	font-weight: 600;
+	font-size: 22px;
+	line-height: 1;
+	letter-spacing: -0.035em;
+	color: var( --feather-text );
+}
+
+.feather-wordmark-text {
+	display: inline-block;
+}
+
+.feather-sidebar {
+	grid-area: sidebar;
+	min-width: 0;
+	background: var( --feather-surface );
+	border-right: 1px solid var( --feather-border );
+	padding: 16px 0;
+}
+
+.feather-nav {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.feather-nav-item {
+	display: block;
+	padding: 10px 20px;
+	color: var( --feather-text-subtle );
+	font-size: 14px;
+	font-weight: 500;
+	text-decoration: none;
+	border-left: 3px solid transparent;
+	transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.feather-nav-item:hover,
+.feather-nav-item:focus {
+	background: var( --feather-surface-2 );
+	color: var( --feather-text );
+	box-shadow: none;
+	outline: none;
+}
+
+.feather-nav-item:focus-visible {
+	outline: 2px solid var( --feather-accent );
+	outline-offset: -2px;
+}
+
+.feather-nav-item.is-current {
+	background: var( --feather-surface-2 );
+	color: var( --feather-text );
+	font-weight: 600;
+	border-left-color: var( --feather-accent );
+}
+
+.feather-main {
+	grid-area: main;
+	min-width: 0;
+	padding: 24px 28px 64px;
+	overflow-x: hidden;
+}
+
+@media ( min-width: 1400px ) {
+	.feather-main {
+		padding: 32px 40px 64px;
+	}
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Cards (override @wordpress/components defaults to match the brand).
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-app .components-card {
+	background: var( --feather-surface );
+	border: 1px solid var( --feather-border );
+	border-radius: var( --feather-radius );
+	box-shadow: none;
+}
+
+.feather-app .components-card__header,
+.feather-app .components-card__body,
+.feather-app .components-card-header,
+.feather-app .components-card-body {
+	background: transparent;
+	border-bottom-color: var( --feather-border );
+}
+
+.feather-app .components-card__header h2,
+.feather-app .components-card-header h2 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	color: var( --feather-text );
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Buttons — primary uses brand orange.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-app .components-button.is-primary {
+	background: var( --feather-accent );
+	color: var( --feather-accent-fg );
+	border-radius: var( --feather-radius-sm );
+	font-weight: 600;
+	box-shadow: none;
+}
+
+.feather-app .components-button.is-primary:hover,
+.feather-app .components-button.is-primary:focus {
+	background: var( --feather-accent-hover );
+	color: var( --feather-cream );
+}
+
+.feather-app .components-button.is-secondary {
+	border-radius: var( --feather-radius-sm );
+	border-color: var( --feather-border-strong );
+	color: var( --feather-text );
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Loading + general utilities.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-loading {
+	display: flex;
+	justify-content: center;
+	padding: 64px 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Features screen.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-feature-group {
+	margin-bottom: 32px;
+}
+
+.feather-feature-group h2 {
+	font-family: var( --feather-font-mono );
+	font-size: 11px;
+	font-weight: 500;
+	margin: 0 0 12px;
+	color: var( --feather-text-muted );
+	text-transform: uppercase;
+	letter-spacing: 0.14em;
+}
+
+.feather-feature-grid {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( min( 100%, 320px ), 1fr ) );
+	gap: 16px;
+}
+
+.feather-feature-card {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.feather-feature-card .components-card__header,
+.feather-feature-card .components-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 16px 18px;
+}
+
+.feather-feature-card .components-card__header strong,
+.feather-feature-card .components-card-header strong {
+	font-size: 14px;
+	font-weight: 600;
+	color: var( --feather-text );
+	min-width: 0;
+}
+
+.feather-feature-card .components-card__body,
+.feather-feature-card .components-card-body {
+	padding: 16px 18px 18px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.feather-feature-desc {
+	color: var( --feather-text-subtle );
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.feather-feature-note {
+	display: block;
+	color: var( --feather-text-muted );
+	font-style: italic;
+	font-size: 12px;
+}
+
+.feather-badge {
+	font-family: var( --feather-font-mono );
+	font-size: 10px;
+	font-weight: 500;
+	padding: 3px 8px;
+	border-radius: 999px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.feather-badge--safe {
+	background: rgba( 74, 124, 89, 0.14 );
+	color: var( --feather-success );
+}
+
+.feather-badge--gated {
+	background: rgba( 14, 165, 233, 0.14 );
+	color: #0c8ec9;
+}
+
+.feather-badge--risky {
+	background: rgba( 255, 106, 31, 0.14 );
+	color: var( --feather-ember );
+}
+
+[data-theme='dark'] .feather-badge--gated {
+	color: #38bdf8;
+}
+
+[data-theme='dark'] .feather-badge--risky {
+	color: var( --feather-orange );
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Scan screen.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-scan-header {
+	margin-bottom: 16px;
+}
+
+.feather-scan-header .components-card__header,
+.feather-scan-header .components-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.feather-stat-row {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( min( 100%, 180px ), 1fr ) );
+	gap: 12px;
+	margin: 16px 0;
+}
+
+.feather-stat-tile {
+	background: var( --feather-surface );
+	border: 1px solid var( --feather-border );
+	border-radius: var( --feather-radius );
+	padding: 16px;
+	text-align: center;
+	min-width: 0;
+}
+
+.feather-stat-tile.is-success {
+	border-color: rgba( 74, 124, 89, 0.4 );
+}
+
+.feather-stat-tile.is-warning {
+	border-color: rgba( 255, 106, 31, 0.4 );
+}
+
+.feather-stat-value {
+	font-family: var( --feather-font-sans );
+	font-size: 28px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.02em;
+	color: var( --feather-text );
+}
+
+.feather-stat-label {
+	margin-top: 4px;
+	font-family: var( --feather-font-mono );
+	font-size: 11px;
+	color: var( --feather-text-muted );
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+}
+
+.feather-progress {
+	height: 8px;
+	background: var( --feather-surface-2 );
+	border-radius: 4px;
+	overflow: hidden;
+	margin-top: 12px;
+}
+
+.feather-progress-bar {
+	height: 100%;
+	background: var( --feather-accent );
+	transition: width 280ms ease-out;
+}
+
+.feather-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.feather-table th,
+.feather-table td {
+	border-bottom: 1px solid var( --feather-border );
+	padding: 10px 12px;
+	text-align: left;
+	color: var( --feather-text );
+}
+
+.feather-table th {
+	font-family: var( --feather-font-mono );
+	font-weight: 500;
+	color: var( --feather-text-muted );
+	text-transform: uppercase;
+	font-size: 11px;
+	letter-spacing: 0.12em;
+}
+
+.feather-table code {
+	font-family: var( --feather-font-mono );
+	background: var( --feather-surface-2 );
+	color: var( --feather-text );
+	padding: 1px 6px;
+	border-radius: var( --feather-radius-sm );
+	font-size: 12px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Dashboard.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-dashboard {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.feather-text-muted-mono {
+	font-family: var( --feather-font-mono );
+	font-size: 11px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var( --feather-text-muted );
+}
+
+/* Welcome banner. */
+.feather-welcome {
+	background: linear-gradient(
+		135deg,
+		rgba( 255, 106, 31, 0.08 ),
+		rgba( 250, 246, 241, 0 )
+	);
+	border-color: rgba( 255, 106, 31, 0.25 );
+}
+
+[data-theme='dark'] .feather-welcome {
+	background: linear-gradient(
+		135deg,
+		rgba( 255, 106, 31, 0.16 ),
+		rgba( 15, 15, 16, 0 )
+	);
+	border-color: rgba( 255, 106, 31, 0.35 );
+}
+
+.feather-welcome-grid {
+	display: grid;
+	grid-template-columns: 96px minmax( 0, 1fr ) auto;
+	gap: 24px;
+	align-items: center;
+}
+
+.feather-welcome-mark {
+	width: 96px;
+	height: 96px;
+	max-width: 96px;
+	max-height: 96px;
+	object-fit: contain;
+	border-radius: 50%;
+	display: block;
+	flex-shrink: 0;
+	box-shadow: 0 6px 18px rgba( 255, 106, 31, 0.25 );
+}
+
+.feather-welcome-text {
+	min-width: 0;
+}
+
+.feather-welcome-grid h2 {
+	font-size: 18px;
+	font-weight: 600;
+	margin: 0 0 6px;
+	letter-spacing: -0.02em;
+	color: var( --feather-text );
+}
+
+.feather-welcome-grid p {
+	margin: 0;
+	color: var( --feather-text-subtle );
+	font-size: 13px;
+	line-height: 1.55;
+	max-width: 60ch;
+}
+
+.feather-welcome-actions {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+@media ( max-width: 720px ) {
+	.feather-welcome-grid {
+		grid-template-columns: 64px 1fr;
+		grid-template-areas:
+			'mark text'
+			'actions actions';
+		row-gap: 16px;
+	}
+
+	.feather-welcome-mark {
+		grid-area: mark;
+		width: 64px;
+		height: 64px;
+	}
+
+	.feather-welcome-text {
+		grid-area: text;
+	}
+
+	.feather-welcome-actions {
+		grid-area: actions;
+		justify-content: flex-start;
+	}
+}
+
+/* Hero metric tiles. */
+.feather-hero-row {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( min( 100%, 220px ), 1fr ) );
+	gap: 16px;
+}
+
+.feather-hero-tile {
+	background: var( --feather-surface );
+	border: 1px solid var( --feather-border );
+	border-radius: var( --feather-radius );
+	padding: 18px 20px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.feather-hero-label {
+	font-family: var( --feather-font-mono );
+	font-size: 11px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var( --feather-text-muted );
+}
+
+.feather-hero-value {
+	font-size: 28px;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+	color: var( --feather-text );
+}
+
+.feather-hero-trail {
+	margin-top: 4px;
+	font-size: 13px;
+	color: var( --feather-text-subtle );
+}
+
+/* Sparkline chart. */
+.feather-sparkline-wrap {
+	position: relative;
+}
+
+.feather-sparkline-axis {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 4px;
+	font-family: var( --feather-font-mono );
+	font-size: 11px;
+	color: var( --feather-text-muted );
+}
+
+/* Quick wins list. */
+.feather-quickwin-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.feather-quickwin {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 14px;
+	background: var( --feather-surface-2 );
+	border-radius: var( --feather-radius-sm );
+}
+
+.feather-quickwin-text {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.feather-quickwin-text strong {
+	font-size: 14px;
+	font-weight: 600;
+	color: var( --feather-text );
+}
+
+.feather-quickwin-text small {
+	margin-top: 2px;
+	font-size: 12px;
+	color: var( --feather-text-subtle );
+	line-height: 1.5;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Database screen.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-db-health {
+	margin-bottom: 16px;
+}
+
+.feather-health-pill {
+	font-family: var( --feather-font-mono );
+	font-size: 11px;
+	font-weight: 500;
+	padding: 4px 10px;
+	border-radius: 999px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.feather-health-pill.is-success {
+	background: rgba( 74, 124, 89, 0.14 );
+	color: var( --feather-success );
+}
+
+.feather-health-pill.is-warning {
+	background: rgba( 255, 106, 31, 0.14 );
+	color: var( --feather-ember );
+}
+
+.feather-health-pill.is-danger {
+	background: rgba( 184, 52, 26, 0.14 );
+	color: var( --feather-danger );
+}
+
+.feather-health-grid {
+	display: grid;
+	grid-template-columns: 140px minmax( 0, 1fr );
+	gap: 24px;
+	align-items: center;
+}
+
+.feather-health-score {
+	position: relative;
+	width: 120px;
+	height: 120px;
+}
+
+.feather-health-score-value {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	font-family: var( --feather-font-sans );
+	font-size: 32px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.02em;
+	color: var( --feather-text );
+}
+
+.feather-health-stats {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 160px, 1fr ) );
+	gap: 12px 24px;
+	min-width: 0;
+}
+
+.feather-health-stat {
+	min-width: 0;
+}
+
+.feather-health-stat-label {
+	font-family: var( --feather-font-mono );
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var( --feather-text-muted );
+}
+
+.feather-health-stat-value {
+	margin: 4px 0 2px;
+	font-size: 18px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: var( --feather-text );
+}
+
+.feather-health-stat-hint {
+	font-size: 12px;
+	color: var( --feather-text-subtle );
+	line-height: 1.4;
+}
+
+.feather-db-tools {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( min( 100%, 320px ), 1fr ) );
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+.feather-db-tool {
+	min-width: 0;
+}
+
+.feather-db-tool .components-card__header,
+.feather-db-tool .components-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.feather-db-tool-count {
+	font-family: var( --feather-font-mono );
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	color: var( --feather-text-muted );
+	background: var( --feather-surface-2 );
+	padding: 2px 10px;
+	border-radius: var( --feather-radius-sm );
+}
+
+@media ( max-width: 720px ) {
+	.feather-health-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.feather-health-score {
+		justify-self: center;
+	}
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Settings screen.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-settings {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.feather-info-list {
+	margin: 0;
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( min( 100%, 240px ), 1fr ) );
+	gap: 8px 24px;
+}
+
+.feather-info-row {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.feather-info-row dt {
+	font-family: var( --feather-font-mono );
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var( --feather-text-muted );
+}
+
+.feather-info-row dd {
+	margin: 4px 0 0;
+	font-size: 14px;
+	font-weight: 500;
+	color: var( --feather-text );
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+
+/* Detected plugins. */
+.feather-detected-group {
+	margin-bottom: 20px;
+}
+
+.feather-detected-group:last-child {
+	margin-bottom: 0;
+}
+
+.feather-detected-group h3 {
+	font-size: 13px;
+	font-weight: 600;
+	margin: 0 0 4px;
+	color: var( --feather-text );
+}
+
+.feather-detected-list {
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.feather-detected-list li {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	background: var( --feather-surface-2 );
+	border-radius: var( --feather-radius-sm );
+}
+
+.feather-detected-list strong {
+	font-size: 13px;
+	color: var( --feather-text );
+}
+
+.feather-detected-list code {
+	font-family: var( --feather-font-mono );
+	font-size: 11px;
+	color: var( --feather-text-muted );
+}
+
+/* Danger zone rows. */
+.feather-danger-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 14px 0;
+	border-bottom: 1px solid var( --feather-border );
+}
+
+.feather-danger-row:last-child {
+	border-bottom: none;
+	padding-bottom: 0;
+}
+
+.feather-danger-row:first-child {
+	padding-top: 0;
+}
+
+.feather-danger-text {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.feather-danger-text strong {
+	font-size: 14px;
+	font-weight: 600;
+	color: var( --feather-text );
+}
+
+.feather-danger-text small {
+	margin-top: 4px;
+	font-size: 12px;
+	color: var( --feather-text-subtle );
+	line-height: 1.5;
+}
+
+@media ( max-width: 720px ) {
+	.feather-danger-row {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Notices: tighten margins inside our shell.
+ * ────────────────────────────────────────────────────────────────────── */
+
+.feather-app .components-notice {
+	margin: 0 0 16px;
+	border-radius: var( --feather-radius );
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Responsive.
+ * ────────────────────────────────────────────────────────────────────── */
+
+@media ( max-width: 960px ) {
+	.feather-app {
+		grid-template-columns: 1fr;
+		grid-template-areas:
+			'topbar'
+			'sidebar'
+			'main';
+	}
+
+	.feather-sidebar {
+		border-right: none;
+		border-bottom: 1px solid var( --feather-border );
+		padding: 8px 0;
+	}
+
+	.feather-nav {
+		flex-direction: row;
+		overflow-x: auto;
+		padding: 0 12px;
+	}
+
+	.feather-nav-item {
+		border-left: none;
+		border-bottom: 3px solid transparent;
+		white-space: nowrap;
+	}
+
+	.feather-nav-item.is-current {
+		border-left-color: transparent;
+		border-bottom-color: var( --feather-accent );
+	}
+}

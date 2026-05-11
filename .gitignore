@@ -1,0 +1,68 @@
+# --- Node / UI build ---
+ui/node_modules/
+ui/build/
+ui/dist/
+ui/.cache/
+ui/coverage/
+ui/*.log
+ui/npm-debug.log*
+ui/yarn-debug.log*
+ui/yarn-error.log*
+
+# --- Composer (not used at runtime, but ignore if ever added) ---
+vendor/
+composer.lock
+
+# --- PHP / WP tooling ---
+.phpunit.result.cache
+.phpcs-cache
+.phpcs.xml
+.phpunit.xml
+phpcs.xml
+phpunit.xml
+
+# --- Build & release artifacts ---
+dist/
+build/
+*.zip
+*.tar.gz
+
+# --- Editor / IDE ---
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+nbproject/
+.project
+.buildpath
+.settings/
+
+# --- OS junk ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# --- Local env / secrets ---
+.env
+.env.*
+!.env.example
+*.local
+secrets.json
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Temp files ---
+*.bak
+*.swp
+*.swo
+*.tmp
+*~
