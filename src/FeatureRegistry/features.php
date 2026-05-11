@@ -19,6 +19,7 @@ use Feather\Optimizers\Elementor\CssOverridesEmitter;
 use Feather\Optimizers\Elementor\CssPrintMethodEnforcer;
 use Feather\Optimizers\Elementor\DomBloatRemover;
 use Feather\Optimizers\Elementor\EiconsDisabler;
+use Feather\Optimizers\Elementor\ElementCacheForcer;
 use Feather\Optimizers\Elementor\ElementorHostFirewall;
 use Feather\Optimizers\Elementor\ExperimentForcer;
 use Feather\Optimizers\Elementor\ExtraExperimentForcer;
@@ -92,6 +93,17 @@ return array(
 		'pro_candidate'   => false,
 		'default_enabled' => false,
 		'optimizer'       => ExtraExperimentForcer::class,
+	),
+	array(
+		'id'              => 'f.elementor.element_cache',
+		'label'           => __( 'Cache per-widget Elementor render output', 'feather-performance' ),
+		'description'     => __( 'Force-enable Elementor\'s e_element_cache experiment. Elementor caches each widget\'s rendered HTML by settings hash; static widgets (Heading, Image, Text, Button…) return cached output and skip their PHP render entirely. Single biggest lever against Elementor TTFB — pages with many widgets typically go from 2-3s renders to 300-500ms. Gated because third-party widgets that read dynamic data inside render_content() without declaring it can serve stale output; audit any custom widget plugins first.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_GATED,
+		'impact'          => FeatureMetadata::IMPACT_HIGH,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => ElementCacheForcer::class,
 	),
 	array(
 		'id'              => 'f.elementor.fa4_shim',
@@ -250,12 +262,12 @@ return array(
 	array(
 		'id'              => 'f.elementor.css_print_external',
 		'label'           => __( 'Force Elementor CSS to "External File"', 'feather-performance' ),
-		'description'     => __( 'Short-circuit the elementor_css_print_method option so Elementor always emits its widget CSS as a cacheable .css file per post instead of inlining it into every HTML response. No database write — your stored Elementor setting is preserved and surfaces unchanged after Feather is deactivated.', 'feather-performance' ),
+		'description'     => __( 'Short-circuit the elementor_css_print_method option so Elementor always emits its widget CSS as a cacheable .css file per post instead of inlining it into every HTML response. After enabling, run Elementor → Tools → Regenerate Files & Data so the per-page .css files are written to uploads/elementor/css. No database write — your stored Elementor setting is preserved and surfaces unchanged after Feather is deactivated.', 'feather-performance' ),
 		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
 		'risk'            => FeatureMetadata::RISK_SAFE,
-		'impact'          => FeatureMetadata::IMPACT_MEDIUM,
+		'impact'          => FeatureMetadata::IMPACT_HIGH,
 		'pro_candidate'   => false,
-		'default_enabled' => false,
+		'default_enabled' => true,
 		'optimizer'       => CssPrintMethodEnforcer::class,
 	),
 	array(
