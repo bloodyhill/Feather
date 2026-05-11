@@ -29,6 +29,40 @@ defined( 'ABSPATH' ) || exit;
 final class WidgetAssetMap {
 
 	/**
+	 * Valid asset-handle pattern. WordPress allows letters, digits,
+	 * underscores, hyphens. We reject anything else — including the
+	 * accidental class-FQN-as-error strings that third-party widgets
+	 * sometimes leak from broken get_*_depends() methods.
+	 *
+	 * @var string
+	 */
+	private const HANDLE_PATTERN = '/^[a-z0-9_-]+$/';
+
+	/**
+	 * Process-wide count of introspection results we rejected. Surfaced
+	 * via introspection_failures() so the admin Site Scan view can show
+	 * "N widgets failed introspection" without itself running PHP eval.
+	 *
+	 * @var int
+	 */
+	private static $failure_count = 0;
+
+	/**
+	 * Public accessor for the failure counter.
+	 */
+	public static function introspection_failures(): int {
+		return self::$failure_count;
+	}
+
+	/**
+	 * Reset the failure counter — useful for tests and for the scanner
+	 * to report failures-per-run rather than process-lifetime totals.
+	 */
+	public static function reset_introspection_failures(): void {
+		self::$failure_count = 0;
+	}
+
+	/**
 	 * Per-request memoization of resolved handles per widget type. The
 	 * scanner walks many posts and re-hits the same widget ids; resolving
 	 * once per id keeps introspection cost negligible.
@@ -167,11 +201,30 @@ final class WidgetAssetMap {
 				continue;
 			}
 			foreach ( $declared as $handle ) {
-				if ( is_string( $handle ) && '' !== $handle && ! in_array( $handle, $handles, true ) ) {
+				if ( ! is_string( $handle ) || '' === $handle ) {
+					continue;
+				}
+				if ( ! preg_match( self::HANDLE_PATTERN, $handle ) ) {
+					++self::$failure_count;
+					continue;
+				}
+				if ( ! in_array( $handle, $handles, true ) ) {
 					$handles[] = $handle;
 				}
 			}
 		}
+
+		// Elementor's Widget_WordPress class incorrectly declares
+		// swiper / e-swiper as deps for every wp-widget-* type. Strip them
+		// for any wp-widget-* widget; if a wp-widget genuinely needs swiper
+		// later, the static overlay below adds it back explicitly.
+		if ( 0 === strpos( $widget_type, 'wp-widget-' ) ) {
+			$handles = array_values( array_filter(
+				$handles,
+				static fn( $h ) => 'swiper' !== $h && 'e-swiper' !== $h
+			) );
+		}
+
 		return $handles;
 	}
 
@@ -196,6 +249,10 @@ final class WidgetAssetMap {
 			'icon-list'    => array( 'elementor-icons' ),
 			'social-icons' => array( 'elementor-icons', 'elementor-icons-fa-brands' ),
 			'icon'         => array( 'elementor-icons' ),
+			// Atomic element: e-tabs is not registered in widgets_manager (it's
+			// an element type), so introspection returns nothing for it. The
+			// tabs-handler script pulls in the rest of the v4 chain via WP deps.
+			'e-tabs'       => array( 'elementor-tabs-handler' ),
 		);
 	}
 }

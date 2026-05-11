@@ -11,7 +11,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b?logo=wordpress&logoColor=white)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?logo=php&logoColor=white)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)](feather-performance.php)
+[![Version](https://img.shields.io/badge/version-0.2.0-orange.svg)](feather-performance.php)
 
 </div>
 
@@ -221,7 +221,39 @@ For larger changes, please open an issue first.
 
 See [`readme.txt`](readme.txt) for the WordPress.org changelog, or the [Releases](https://github.com/featherr/feather-performance/releases) page for tagged builds.
 
-### 0.1.0
+## [0.2.0] — 2026-05-11
+
+### Added
+- **Elementor 4.0.x atomic widget support.** Scanner detects atomic widgets (`e-heading`, `e-button`, `e-image`, `e-paragraph`, `e-divider`, `e-svg`, `e-self-hosted-video`, `e-youtube`, `e-component`) and atomic element types (`e-flexbox`, `e-div-block`, `e-tabs`, `e-tabs-menu`, `e-tab`, `e-tabs-content-area`, `e-tab-content`) inside `_elementor_data`.
+- **`AtomicAssetGate` optimizer (gated).** New feature `f.elementor.skip_atomic_chain`. On Elementor pages that contain only legacy widgets, dequeues the v4 atomic widget handler bundle — `elementor-v2-widgets-frontend`, `elementor-v2-frontend-handlers`, `elementor-v2-alpinejs`, `elementor-tabs-handler`, `elementor-youtube-handler`. Auto-bails on Elementor Pro to protect theme-builder injected atomic widgets.
+- **`ElementorHostFirewall` optimizer (gated).** New feature `f.elementor.network_firewall`. Hooks `pre_http_request` at priority 1 and refuses every outbound request whose host matches `(^|\.)elementor\.com$`, unless the request is user-initiated (AJAX non-heartbeat, REST, editor page load). Catches every background telemetry / marketing / discovery vector at the network layer — including future ones Elementor may add. Coexists with `ApiFetcherDisabler`.
+- **Master "Pause all optimizations" toggle.** New `optimizers_paused` top-level setting on `SettingsRepository`. When true, `Plugin::apply_optimizers()` returns before registering any optimizer hooks. Exposed via a `<PauseAllCard />` component at the top of the React Dashboard, with optimistic-update + rollback behavior.
+- **`PerPageAssetTrimmer`** now drops `elementor-tabs-handler` and `elementor-youtube-handler` per-page when the page's scan row doesn't list the corresponding atomic element.
+- **`UnusedWidgetBundleStripper`** new branch deregisters the entire v4 chain at `wp_default_scripts` when `ScanRepository::has_any_atomic_widgets_site_wide()` returns false and Elementor Pro is not active.
+- **`WidgetAssetMap::introspection_failures()`** / **`reset_introspection_failures()`** static accessors — count and reset rejected handle entries per request.
+- **`ScanRepository::flags_for_post()`** — symmetric to `handles_for_post()`, returns decoded `settings_flags` map for a single post.
+- **`ScanRepository::has_any_atomic_widgets_site_wide()`** — site-wide accessor backed by the existing aggregate cache.
+
+### Changed
+- Default theme switched from `system` to `light` on fresh installs. Existing users keep their stored preference; the `system` option remains selectable.
+- `feather_aggregated_scan_verdicts` aggregate now carries `has_atomic_widgets_anywhere: bool` field.
+- Scan rows' `settings_flags` JSON now carries `has_atomic_widgets: bool`.
+- `WidgetAssetMap::introspect()` now validates each declared handle against `/^[a-z0-9_-]+$/`. Garbage entries (e.g., the class-FQN-as-error strings some third-party widgets leak from broken `get_*_depends()` methods) are filtered out and the rejection counter is incremented.
+- `WidgetAssetMap` now strips `swiper` and `e-swiper` from any `wp-widget-*` introspection result — works around an upstream bug in Elementor's `Widget_WordPress` class that incorrectly declares those deps for every WordPress sidebar widget.
+- `WidgetAssetMap::defaults()` overlay adds `e-tabs => ['elementor-tabs-handler']`.
+
+### Fixed
+- `MetricsEndpoint::capture()` now re-reads via `MetricsRepository::latest()` after save, so the response carries `recorded_at`. Fixes the Dashboard "Last measured" tile showing "Never" immediately after running a measurement.
+- Dashboard "Pause all optimizations" card now renders with proper spacing — label and description stack on separate lines, toggle sits on the right with a flex layout, mobile breakpoint at 600px drops the toggle below the text. Warning gradient applied when paused (light + dark mode variants).
+
+### Developer
+- New file: `src/Optimizers/Elementor/AtomicAssetGate.php`
+- New file: `src/Optimizers/Elementor/ElementorHostFirewall.php`
+- New file: `ui/src/components/PauseAllCard.tsx`
+- Plugin orchestrator (`Plugin::apply_optimizers`) now resolves `SettingsRepository` once at the top and consults it for the pause flag before any feature iteration.
+
+
+## [0.1.0]
 
 Initial release.
 

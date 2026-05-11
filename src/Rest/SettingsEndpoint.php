@@ -72,6 +72,10 @@ final class SettingsEndpoint implements RouteRegistrar {
 							'type'     => 'boolean',
 							'required' => false,
 						),
+						'optimizers_paused' => array(
+							'type'     => 'boolean',
+							'required' => false,
+						),
 					),
 				),
 			)
@@ -168,9 +172,10 @@ final class SettingsEndpoint implements RouteRegistrar {
 	public function write_settings( WP_REST_Request $request ) {
 		$current = $this->settings->all();
 
-		$preset       = $request->get_param( 'preset' );
-		$theme        = $request->get_param( 'theme' );
-		$usage_opt_in = $request->get_param( 'usage_opt_in' );
+		$preset            = $request->get_param( 'preset' );
+		$theme             = $request->get_param( 'theme' );
+		$usage_opt_in      = $request->get_param( 'usage_opt_in' );
+		$optimizers_paused = $request->get_param( 'optimizers_paused' );
 
 		if ( is_string( $preset ) ) {
 			$current['preset'] = $preset;
@@ -180,6 +185,9 @@ final class SettingsEndpoint implements RouteRegistrar {
 		}
 		if ( is_bool( $usage_opt_in ) ) {
 			$current['usage_opt_in'] = $usage_opt_in;
+		}
+		if ( is_bool( $optimizers_paused ) ) {
+			$current['optimizers_paused'] = $optimizers_paused;
 		}
 
 		$this->settings->save( $current );

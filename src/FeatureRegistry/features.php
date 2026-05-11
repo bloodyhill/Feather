@@ -14,8 +14,10 @@ use Feather\Optimizers\Elementor\AdminBloatDisabler;
 use Feather\Optimizers\Elementor\AdminTopBarOptimizer;
 use Feather\Optimizers\Elementor\AiModuleDisabler;
 use Feather\Optimizers\Elementor\ApiFetcherDisabler;
+use Feather\Optimizers\Elementor\AtomicAssetGate;
 use Feather\Optimizers\Elementor\DomBloatRemover;
 use Feather\Optimizers\Elementor\EiconsDisabler;
+use Feather\Optimizers\Elementor\ElementorHostFirewall;
 use Feather\Optimizers\Elementor\ExperimentForcer;
 use Feather\Optimizers\Elementor\FA4ShimDisabler;
 use Feather\Optimizers\Elementor\FrontendAssetGate;
@@ -106,6 +108,17 @@ return array(
 		'pro_candidate'   => false,
 		'default_enabled' => false,
 		'optimizer'       => UnusedWidgetBundleStripper::class,
+	),
+	array(
+		'id'              => 'f.elementor.skip_atomic_chain',
+		'label'           => __( 'Skip atomic widget JS on legacy-widget pages', 'feather-performance' ),
+		'description'     => __( 'On Elementor pages built entirely with legacy widgets (no e-heading, e-button, e-tabs, etc.), drops the v4 atomic widget handler bundle — including Alpine.js — from the enqueue queue. Saves ~3 JS files plus Alpine on every legacy-only page. Auto-bails when Elementor Pro is active so theme-builder injected atomic widgets aren\'t broken.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_GATED,
+		'impact'          => FeatureMetadata::IMPACT_HIGH,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => AtomicAssetGate::class,
 	),
 	array(
 		'id'              => 'f.elementor.google_fonts',
@@ -205,6 +218,17 @@ return array(
 		'pro_candidate'   => false,
 		'default_enabled' => true,
 		'optimizer'       => ApiFetcherDisabler::class,
+	),
+	array(
+		'id'              => 'f.elementor.network_firewall',
+		'label'           => __( 'Block all Elementor outbound HTTP except user-initiated', 'feather-performance' ),
+		'description'     => __( 'Aggressive: blocks every outbound HTTP to elementor.com and its subdomains EXCEPT during user-initiated actions (editor page loads, AJAX inside the editor, REST API calls from the editor). Catches every background telemetry/marketing/discovery vector at the network layer — including future ones that ship in later Elementor versions. Template Library, Connect login, and Pro activation flows still work because they run as AJAX/REST. Side effects: dashboard widgets that fetch Elementor news on admin page load go blank. Recommended for privacy-conscious admins.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_GATED,
+		'impact'          => FeatureMetadata::IMPACT_HIGH,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => ElementorHostFirewall::class,
 	),
 
 	// ───────────────────────────────────────────────────────────────────

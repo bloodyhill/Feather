@@ -1042,3 +1042,65 @@
 		border-bottom-color: var( --feather-accent );
 	}
 }
+
+/* Pause-all card (top of Dashboard). */
+.feather-pause-card {
+	margin-bottom: 16px;
+}
+
+.feather-pause-card .components-card__body {
+	padding: 18px 20px;
+}
+
+.feather-pause-card-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+}
+
+.feather-pause-card-text {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 0;
+}
+
+.feather-pause-card-text strong {
+	font-size: 14px;
+	font-weight: 600;
+	color: var( --feather-text );
+}
+
+.feather-pause-card-text small {
+	font-size: 12px;
+	line-height: 1.5;
+	color: var( --feather-text-subtle );
+	max-width: 60ch;
+}
+
+.feather-pause-card--paused {
+	background: linear-gradient(
+		135deg,
+		rgba( 184, 101, 26, 0.1 ),
+		rgba( 250, 246, 241, 0 )
+	);
+	border-color: rgba( 184, 101, 26, 0.35 );
+}
+
+[data-theme='dark'] .feather-pause-card--paused {
+	background: linear-gradient(
+		135deg,
+		rgba( 184, 101, 26, 0.2 ),
+		rgba( 15, 15, 16, 0 )
+	);
+	border-color: rgba( 184, 101, 26, 0.5 );
+}
+
+@media ( max-width: 600px ) {
+	.feather-pause-card-row {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+}

@@ -48,6 +48,13 @@ final class PerPageAssetTrimmer extends AbstractOptimizer {
 	private const TRIMMABLE_SCRIPTS = array(
 		'swiper',
 		'jquery-numerator',
+		// Elementor 4.0+ atomic-element handlers. Loaded on every Elementor page
+		// when the corresponding atomic element exists ANYWHERE on the site;
+		// these dequeue calls drop them on pages that don't use them.
+		// The v2 chain root handles (elementor-v2-widgets-frontend etc.) are
+		// handled by AtomicAssetGate's all-or-nothing decision, not here.
+		'elementor-tabs-handler',
+		'elementor-youtube-handler',
 	);
 
 	/**

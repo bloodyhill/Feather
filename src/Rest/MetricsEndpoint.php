@@ -134,7 +134,13 @@ final class MetricsEndpoint implements RouteRegistrar {
 			$snapshot
 		);
 
-		return new WP_REST_Response( $snapshot, 200 );
+		// Re-read so the response carries `recorded_at`, keeping the capture
+		// response shape identical to GET /metrics/latest. Without this, the
+		// Dashboard's "Last measured" tile falls back to "Never" until the
+		// next page reload because the raw probe snapshot has no recorded_at.
+		$stored = $this->repository->latest( MetricsRepository::METRIC_PAGE_WEIGHT, home_url( '/' ) );
+
+		return new WP_REST_Response( $stored ?? $snapshot, 200 );
 	}
 
 	/**

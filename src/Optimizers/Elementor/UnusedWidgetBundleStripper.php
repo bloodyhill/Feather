@@ -78,6 +78,24 @@ final class UnusedWidgetBundleStripper extends AbstractOptimizer {
 	);
 
 	/**
+	 * Elementor 4.0+ atomic-widget JS chain. Deregistered at registration
+	 * time when no scanned post on the site contains atomic widgets, and
+	 * Elementor Pro is not active (theme-builder safety, same reason as
+	 * AtomicAssetGate). More aggressive than AtomicAssetGate's per-page
+	 * dequeue — this version reflects "we will never need this on this site
+	 * until the next scan tells us otherwise."
+	 *
+	 * @var string[]
+	 */
+	private const ATOMIC_CHAIN_HANDLES = array(
+		'elementor-v2-widgets-frontend',
+		'elementor-v2-frontend-handlers',
+		'elementor-v2-alpinejs',
+		'elementor-tabs-handler',
+		'elementor-youtube-handler',
+	);
+
+	/**
 	 * Scan repository (read-only access to the aggregate).
 	 *
 	 * @var ScanRepository
@@ -137,6 +155,36 @@ final class UnusedWidgetBundleStripper extends AbstractOptimizer {
 			wp_deregister_script( $handle );
 			wp_dequeue_style( $handle );
 			wp_deregister_style( $handle );
+		}
+
+		$this->maybe_strip_atomic_chain();
+	}
+
+	/**
+	 * Strip the v4 atomic-widget JS chain when no scanned post uses atomic
+	 * widgets and the site isn't running Elementor Pro.
+	 *
+	 * Uses deregister (not just dequeue) so the handles are gone from the
+	 * registry entirely — anything that would otherwise re-enqueue them
+	 * later in the request gets a wp_die-less no-op instead of a re-add.
+	 */
+	private function maybe_strip_atomic_chain(): void {
+		if ( class_exists( '\ElementorPro\Plugin' ) ) {
+			return;
+		}
+		if ( ! defined( '\ELEMENTOR_VERSION' ) ) {
+			return;
+		}
+		if ( ! version_compare( \ELEMENTOR_VERSION, '4.0', '>=' ) ) {
+			return;
+		}
+		if ( $this->repository->has_any_atomic_widgets_site_wide() ) {
+			return;
+		}
+
+		foreach ( self::ATOMIC_CHAIN_HANDLES as $handle ) {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
 		}
 	}
 

@@ -142,7 +142,7 @@ final class AssetEnqueue {
 			'isMultisite'  => is_multisite(),
 			'currentRoute' => $this->admin_menu->current_route(),
 			'routeMap'     => $this->admin_menu->route_map(),
-			'theme'        => (string) $this->settings->get( 'theme', SettingsRepository::THEME_SYSTEM ),
+			'theme'        => (string) $this->settings->get( 'theme', SettingsRepository::THEME_LIGHT ),
 			'logos'        => array(
 				'ink'   => $ink_logo,
 				'cream' => $cream_logo,

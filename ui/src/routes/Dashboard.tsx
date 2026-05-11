@@ -17,6 +17,7 @@ import {
 	setOnboardingState,
 	toggleFeature,
 } from '../api/client';
+import PauseAllCard from '../components/PauseAllCard';
 import type {
 	Feature,
 	MetricsHistory,
@@ -123,6 +124,8 @@ export default function Dashboard(): JSX.Element {
 					{ error }
 				</Notice>
 			) }
+
+			<PauseAllCard />
 
 			{ showBanner && (
 				<WelcomeBanner

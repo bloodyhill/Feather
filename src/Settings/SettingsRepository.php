@@ -21,6 +21,7 @@ defined( 'ABSPATH' ) || exit;
  *       'preset'         => string, // 'conservative' | 'balanced' | 'aggressive' | 'custom'
  *       'theme'          => string, // 'system' | 'light' | 'dark'
  *       'usage_opt_in'   => bool,
+ *       'optimizers_paused' => bool, // master kill switch — when true, no optimizer applies
  *   )
  *
  * Bulky data (scan results, metrics history) lives in custom tables, not here.
@@ -89,6 +90,28 @@ final class SettingsRepository {
 	}
 
 	/**
+	 * Master kill switch — when true, Plugin::apply_optimizers() bails before
+	 * registering any optimizer hooks. Users toggle this from the Dashboard's
+	 * "Pause all optimizations" card while editing in Elementor.
+	 */
+	public function is_optimizers_paused(): bool {
+		$all = $this->all();
+		return ! empty( $all['optimizers_paused'] );
+	}
+
+	/**
+	 * Set the master pause flag. Writes the merged settings array back to
+	 * the option store and refreshes the in-memory cache.
+	 *
+	 * @param bool $paused Whether optimizers should be paused.
+	 */
+	public function set_optimizers_paused( bool $paused ): void {
+		$all                      = $this->all();
+		$all['optimizers_paused'] = $paused;
+		$this->save( $all );
+	}
+
+	/**
 	 * Persist a settings array.
 	 *
 	 * @param array<string, mixed> $settings Settings to save.
@@ -125,11 +148,12 @@ final class SettingsRepository {
 	 */
 	private function defaults(): array {
 		return array(
-			'schema_version' => self::SCHEMA_VERSION,
-			'features'       => array(),
-			'preset'         => self::PRESET_CONSERVATIVE,
-			'theme'          => self::THEME_SYSTEM,
-			'usage_opt_in'   => false,
+			'schema_version'    => self::SCHEMA_VERSION,
+			'features'          => array(),
+			'preset'            => self::PRESET_CONSERVATIVE,
+			'theme'             => self::THEME_LIGHT,
+			'usage_opt_in'      => false,
+			'optimizers_paused' => false,
 		);
 	}
 }

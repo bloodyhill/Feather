@@ -167,6 +167,7 @@ export interface SettingsResponse {
 	preset: Preset;
 	theme: Theme;
 	usage_opt_in: boolean;
+	optimizers_paused: boolean;
 }
 
 export interface BootstrapPayload {

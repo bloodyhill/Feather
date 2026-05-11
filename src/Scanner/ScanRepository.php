@@ -88,6 +88,40 @@ final class ScanRepository {
 	}
 
 	/**
+	 * Decoded settings_flags map for a single post id, or null when no row
+	 * has been scanned yet (caller must distinguish "no data" from "empty").
+	 *
+	 * @return array<string, bool>|null
+	 */
+	public function flags_for_post( int $post_id ): ?array {
+		if ( $post_id <= 0 ) {
+			return null;
+		}
+
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$raw = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT settings_flags FROM {$wpdb->prefix}feather_scan WHERE post_id = %d LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$post_id
+			)
+		);
+
+		if ( ! is_string( $raw ) || '' === $raw ) {
+			return null;
+		}
+
+		$decoded = $this->safe_decode( $raw );
+		$flags   = array();
+		foreach ( $decoded as $key => $value ) {
+			if ( is_string( $key ) ) {
+				$flags[ $key ] = (bool) $value;
+			}
+		}
+		return $flags;
+	}
+
+	/**
 	 * Persist a single scan result, overwriting any existing row for the post.
 	 *
 	 * Returns false when the underlying write fails — callers use this to
@@ -214,6 +248,19 @@ final class ScanRepository {
 	}
 
 	/**
+	 * Whether any scanned post contains atomic Elementor widgets (e-heading,
+	 * e-button, e-tabs, etc.) or atomic element types. Read by AtomicAssetGate
+	 * and UnusedWidgetBundleStripper.
+	 *
+	 * Backed by the same aggregate cache as eicons_usage_count etc., so it
+	 * invalidates on save() automatically.
+	 */
+	public function has_any_atomic_widgets_site_wide(): bool {
+		$aggregate = $this->aggregate();
+		return ! empty( $aggregate['has_atomic_widgets_anywhere'] );
+	}
+
+	/**
 	 * Compute aggregates by reading the table.
 	 *
 	 * @return array<string, mixed>
@@ -226,15 +273,16 @@ final class ScanRepository {
 		$count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}feather_scan" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$result = array(
-			'total_pages'           => $count,
-			'has_results'           => $count > 0,
-			'eicons_usage_count'    => 0,
-			'fa_icons_usage_count'  => 0,
-			'google_fonts_usage_count' => 0,
-			'lottie_usage_count'    => 0,
-			'widget_counts'         => array(),
-			'asset_counts'          => array(),
-			'last_scanned_at'       => null,
+			'total_pages'                 => $count,
+			'has_results'                 => $count > 0,
+			'eicons_usage_count'          => 0,
+			'fa_icons_usage_count'        => 0,
+			'google_fonts_usage_count'    => 0,
+			'lottie_usage_count'          => 0,
+			'has_atomic_widgets_anywhere' => false,
+			'widget_counts'               => array(),
+			'asset_counts'                => array(),
+			'last_scanned_at'             => null,
 		);
 
 		if ( 0 === $count ) {
@@ -276,6 +324,9 @@ final class ScanRepository {
 			}
 			if ( ! empty( $flags['uses_lottie'] ) ) {
 				++$result['lottie_usage_count'];
+			}
+			if ( ! empty( $flags['has_atomic_widgets'] ) ) {
+				$result['has_atomic_widgets_anywhere'] = true;
 			}
 
 			if ( isset( $row['scanned_at'] ) ) {

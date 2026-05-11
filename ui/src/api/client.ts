@@ -81,7 +81,7 @@ export async function fetchSettings(): Promise< SettingsResponse > {
 }
 
 export async function updateSettings(
-	patch: Partial< { preset: Preset; theme: Theme; usage_opt_in: boolean } >
+	patch: Partial< { preset: Preset; theme: Theme; usage_opt_in: boolean; optimizers_paused: boolean } >
 ): Promise< SettingsResponse > {
 	return apiFetch< SettingsResponse >( {
 		path: path( '/settings' ),

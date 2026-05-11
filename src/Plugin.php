@@ -46,7 +46,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Plugin {
 
-	public const VERSION = '0.1.0-dev';
+	public const VERSION = '0.2.0';
 
 	/**
 	 * Process-wide instance for the `feather_plugin()` global helper.
@@ -440,9 +440,14 @@ final class Plugin {
 	 * reports it is safe.
 	 */
 	private function apply_optimizers(): void {
+		/** @var SettingsRepository $settings */
+		$settings = $this->container->get( SettingsRepository::class );
+		if ( $settings->is_optimizers_paused() ) {
+			return;
+		}
+
 		$registry = $this->container->get( FeatureRegistry::class );
 		$gate     = $this->container->get( FeatureGate::class );
-		$settings = $this->container->get( SettingsRepository::class );
 
 		foreach ( $registry->all() as $metadata ) {
 			$class = $metadata->optimizer_class();

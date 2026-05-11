@@ -39,6 +39,52 @@ final class ElementorJsonParser {
 	}
 
 	/**
+	 * Atomic widget keys (Elementor 4.0+). Detected via the existing
+	 * widgetType branch in walk() — listed here for the flag check.
+	 *
+	 * @var string[]
+	 */
+	private const ATOMIC_WIDGET_TYPES = array(
+		'e-button',
+		'e-component',
+		'e-divider',
+		'e-heading',
+		'e-image',
+		'e-paragraph',
+		'e-self-hosted-video',
+		'e-svg',
+		'e-youtube',
+	);
+
+	/**
+	 * Atomic element types. These appear with `elType` directly and no
+	 * `widgetType`. Most are pure containers (no asset deps); e-tabs
+	 * additionally needs `elementor-tabs-handler`, so it gets recorded
+	 * as a widget type for asset-map resolution.
+	 *
+	 * @var string[]
+	 */
+	private const ATOMIC_ELEMENT_TYPES = array(
+		'e-div-block',
+		'e-flexbox',
+		'e-tabs',
+		'e-tabs-menu',
+		'e-tab',
+		'e-tabs-content-area',
+		'e-tab-content',
+	);
+
+	/**
+	 * Atomic element types that themselves pull a unique asset (so the
+	 * scanner must record them as widget types for WidgetAssetMap lookup).
+	 *
+	 * @var string[]
+	 */
+	private const ATOMIC_ELEMENTS_WITH_ASSETS = array(
+		'e-tabs',
+	);
+
+	/**
 	 * Parse a single post's Elementor data into a ScanResult.
 	 *
 	 * @param int $post_id Post id.
@@ -70,10 +116,11 @@ final class ElementorJsonParser {
 	 */
 	private function empty_flags(): array {
 		return array(
-			'uses_google_fonts' => false,
-			'uses_eicons'       => false,
-			'uses_fa_icons'     => false,
-			'uses_lottie'       => false,
+			'uses_google_fonts'   => false,
+			'uses_eicons'         => false,
+			'uses_fa_icons'       => false,
+			'uses_lottie'         => false,
+			'has_atomic_widgets'  => false,
 		);
 	}
 
@@ -91,13 +138,31 @@ final class ElementorJsonParser {
 				continue;
 			}
 
+			// Path A: traditional widget — elType='widget', widgetType=<name>.
+			// Atomic widgets in 4.0.x also use this shape (widgetType='e-heading').
 			if ( ! empty( $node['widgetType'] ) && is_string( $node['widgetType'] ) ) {
 				$widget_type = $node['widgetType'];
 				if ( ! in_array( $widget_type, $types, true ) ) {
 					$types[] = $widget_type;
 				}
+				if ( in_array( $widget_type, self::ATOMIC_WIDGET_TYPES, true ) ) {
+					$flags['has_atomic_widgets'] = true;
+				}
 				if ( isset( $node['settings'] ) && is_array( $node['settings'] ) ) {
 					$this->inspect_settings( $widget_type, $node['settings'], $flags );
+				}
+			}
+
+			// Path B: atomic element — elType=<name>, no widgetType.
+			$el_type = isset( $node['elType'] ) && is_string( $node['elType'] ) ? $node['elType'] : '';
+			if ( '' !== $el_type && in_array( $el_type, self::ATOMIC_ELEMENT_TYPES, true ) ) {
+				$flags['has_atomic_widgets'] = true;
+				// Record asset-bearing atomic elements (currently just e-tabs) as
+				// "widget types" so WidgetAssetMap can resolve their handler scripts.
+				if ( in_array( $el_type, self::ATOMIC_ELEMENTS_WITH_ASSETS, true )
+					&& ! in_array( $el_type, $types, true )
+				) {
+					$types[] = $el_type;
 				}
 			}
 
