@@ -15,18 +15,23 @@ use Feather\Optimizers\Elementor\AdminTopBarOptimizer;
 use Feather\Optimizers\Elementor\AiModuleDisabler;
 use Feather\Optimizers\Elementor\ApiFetcherDisabler;
 use Feather\Optimizers\Elementor\AtomicAssetGate;
+use Feather\Optimizers\Elementor\CssOverridesEmitter;
+use Feather\Optimizers\Elementor\CssPrintMethodEnforcer;
 use Feather\Optimizers\Elementor\DomBloatRemover;
 use Feather\Optimizers\Elementor\EiconsDisabler;
 use Feather\Optimizers\Elementor\ElementorHostFirewall;
 use Feather\Optimizers\Elementor\ExperimentForcer;
 use Feather\Optimizers\Elementor\FA4ShimDisabler;
 use Feather\Optimizers\Elementor\FrontendAssetGate;
+use Feather\Optimizers\Elementor\FrontendLocalizeTrimmer;
 use Feather\Optimizers\Elementor\GoogleFontsDisabler;
 use Feather\Optimizers\Elementor\JsDeferer;
+use Feather\Optimizers\Elementor\LoadingOverlayRemover;
 use Feather\Optimizers\Elementor\PerPageAssetTrimmer;
 use Feather\Optimizers\Elementor\RevisionsLimiter;
 use Feather\Optimizers\Elementor\TelemetryDisabler;
 use Feather\Optimizers\Elementor\UnusedWidgetBundleStripper;
+use Feather\Optimizers\Elementor\WidgetLazyInit;
 use Feather\Optimizers\Media\BelowFoldRenderer;
 use Feather\Optimizers\Media\IframeLazyloader;
 use Feather\Optimizers\Media\ImageDimensionsAdder;
@@ -229,6 +234,61 @@ return array(
 		'pro_candidate'   => false,
 		'default_enabled' => false,
 		'optimizer'       => ElementorHostFirewall::class,
+	),
+	array(
+		'id'              => 'f.elementor.css_print_external',
+		'label'           => __( 'Force Elementor CSS to "External File"', 'feather-performance' ),
+		'description'     => __( 'Short-circuit the elementor_css_print_method option so Elementor always emits its widget CSS as a cacheable .css file per post instead of inlining it into every HTML response. No database write — your stored Elementor setting is preserved and surfaces unchanged after Feather is deactivated.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_SAFE,
+		'impact'          => FeatureMetadata::IMPACT_MEDIUM,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => CssPrintMethodEnforcer::class,
+	),
+	array(
+		'id'              => 'f.elementor.localize_trim',
+		'label'           => __( 'Trim Elementor frontend config payload', 'feather-performance' ),
+		'description'     => __( 'Strip editor-only keys (i18n strings, loaderUrl, beta flag) from the elementorFrontendConfig JSON that Elementor inlines into every page. Saves 1–5 KB of inline JS per pageview without affecting the editor.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_SAFE,
+		'impact'          => FeatureMetadata::IMPACT_LOW,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => FrontendLocalizeTrimmer::class,
+	),
+	array(
+		'id'              => 'f.elementor.loading_overlay',
+		'label'           => __( 'Hide Elementor loading overlay', 'feather-performance' ),
+		'description'     => __( 'Hide the full-viewport white spinner overlay Elementor injects at body open. On Feather-optimized sites the page paints fully before JS runs, so the overlay only delays perceived first paint. Pure CSS — no DOM mutation.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_SAFE,
+		'impact'          => FeatureMetadata::IMPACT_LOW,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => LoadingOverlayRemover::class,
+	),
+	array(
+		'id'              => 'f.elementor.css_overrides_cls',
+		'label'           => __( 'Apply Elementor CLS / motion overrides', 'feather-performance' ),
+		'description'     => __( 'Inline ~2 KB of CSS on Elementor pages that fixes Cumulative Layout Shift on image, image-box, video, counter, and carousel widgets; reserves a 16:9 ratio for video embeds; respects prefers-reduced-motion; and strips interactive widgets from print output. Theme-coupled overrides (fonts, fluid typography, grid replacement) are intentionally not shipped.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_SAFE,
+		'impact'          => FeatureMetadata::IMPACT_MEDIUM,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => CssOverridesEmitter::class,
+	),
+	array(
+		'id'              => 'f.elementor.widget_lazy_init',
+		'label'           => __( 'Lazy-init heavy Elementor widgets', 'feather-performance' ),
+		'description'     => __( 'IntersectionObserver-driven initialization for Swiper carousels, animated counters, Vimeo/YouTube iframes, and entrance animations: above-the-fold widgets boot immediately, the rest wait until the section enters the viewport. Companion to "Defer Elementor JavaScript" — that defers script parse, this defers the work the script does. Default-off because it shifts widget timing; test before enabling on production.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_GATED,
+		'impact'          => FeatureMetadata::IMPACT_HIGH,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => WidgetLazyInit::class,
 	),
 
 	// ───────────────────────────────────────────────────────────────────

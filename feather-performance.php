@@ -3,7 +3,7 @@
  * Plugin Name:       Feather Performance
  * Plugin URI:        https://featherplugin.com/
  * Description:       Trims Elementor's asset load, throttles WordPress overhead, cleans the database, and surfaces per-page measurements — all from one dashboard.
- * Version:           0.2.0
+ * Version:           0.2.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Feather
@@ -37,7 +37,7 @@ declare( strict_types=1 );
 defined( 'ABSPATH' ) || exit;
 
 // Plugin meta constants.
-define( 'FEATHER_VERSION', '0.2.0' );
+define( 'FEATHER_VERSION', '0.2.1' );
 define( 'FEATHER_FILE', __FILE__ );
 define( 'FEATHER_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FEATHER_URL', plugin_dir_url( __FILE__ ) );

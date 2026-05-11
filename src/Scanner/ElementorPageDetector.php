@@ -30,6 +30,15 @@ final class ElementorPageDetector {
 			return true;
 		}
 
+		// Page types that never render Elementor content. Asset-leakage on
+		// these routes is pure waste: feeds emit XML, attachments render a
+		// single media file, and 404 templates almost never come from
+		// Elementor (ThemeBuilder 404s remain possible but are rare; users
+		// can disable the FrontendAssetGate feature if they ship one).
+		if ( is_feed() || is_attachment() || is_404() ) {
+			return false;
+		}
+
 		// Header / footer / theme-builder content always needs Elementor assets.
 		if (
 			did_action( 'elementor/theme/before_do_header' )
@@ -40,7 +49,8 @@ final class ElementorPageDetector {
 
 		$post_id = (int) get_queried_object_id();
 		if ( $post_id <= 0 ) {
-			// Archives, search, 404s, etc. — keep Elementor available.
+			// Archives, search — keep Elementor available conservatively;
+			// theme-builder templates frequently target these routes.
 			return true;
 		}
 

@@ -18,9 +18,15 @@ defined( 'ABSPATH' ) || exit;
  * sections that aren't currently in the viewport. Improves Time to
  * Interactive on long pages without breaking SEO (the DOM still exists).
  *
- * Targets the second-and-onwards Elementor section / WP block container —
- * we deliberately skip the first one because it's almost always above
- * the fold and `content-visibility: auto` would defer its paint by a frame.
+ * Targets the second-and-onwards Elementor section / Flexbox container /
+ * WP block container — we deliberately skip the first one because it's
+ * almost always above the fold and `content-visibility: auto` would defer
+ * its paint by a frame.
+ *
+ * Both layout models are matched:
+ *   - `.elementor-section`  — legacy Section/Column structure
+ *   - `.e-con`              — Flexbox Container (Elementor 3.6+, default
+ *                             on new sites since 3.16)
  *
  * The `contain-intrinsic-size` reservation prevents scroll-jank when
  * sections enter the viewport.
@@ -42,6 +48,6 @@ final class BelowFoldRenderer extends AbstractOptimizer {
 		if ( is_admin() ) {
 			return;
 		}
-		echo "<style id=\"feather-below-fold\">.elementor-section:nth-of-type(n+2),.wp-block-group:nth-of-type(n+2),article:nth-of-type(n+2){content-visibility:auto;contain-intrinsic-size:0 800px}</style>\n";
+		echo "<style id=\"feather-below-fold\">.elementor-section:nth-of-type(n+2),.e-con:nth-of-type(n+2),.wp-block-group:nth-of-type(n+2),article:nth-of-type(n+2){content-visibility:auto;contain-intrinsic-size:0 800px}</style>\n";
 	}
 }
