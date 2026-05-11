@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/icons/Feather.png" alt="Feather Performance" width="128" height="128" />
+
 # Feather Performance
 
 **A performance plugin for WordPress sites built with Elementor.**
