@@ -109,9 +109,9 @@ export default function Features(): JSX.Element {
 function RiskBadge( { feature }: { feature: Feature } ): JSX.Element {
 	const labels: Record< Feature[ 'recommendation' ], string > = {
 		safe: __( 'Safe', 'feather-performance' ),
-		scan_recommended: __( 'Scan recommended', 'feather-performance' ),
+		scan_recommended: __( 'Use with caution', 'feather-performance' ),
 		risky: __( 'Risky', 'feather-performance' ),
-		dangerous: __( 'Will break — scan found usages', 'feather-performance' ),
+		dangerous: __( 'Will break your site', 'feather-performance' ),
 	};
 	const r = feature.recommendation;
 	const klass =
