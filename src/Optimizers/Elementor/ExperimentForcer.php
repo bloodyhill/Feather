@@ -21,37 +21,34 @@ defined( 'ABSPATH' ) || exit;
  *
  * Why force these instead of writing more Feather code:
  *
- *   - `e_font_icon_svg`            With this active, `Frontend::register_styles()`
- *                                  skips enqueuing both `elementor-icons` (eicons)
- *                                  and the Font Awesome library handles; icons
- *                                  render as inline SVG. Makes both EiconsDisabler
- *                                  and FA4ShimDisabler redundant on those pages.
- *                                  Elementor ships this as default-active for new
- *                                  sites since 3.17.0.
+ *   - `e_font_icon_svg`     With this active, `Frontend::register_styles()`
+ *                           skips enqueuing both `elementor-icons` (eicons)
+ *                           and the Font Awesome library handles; icons
+ *                           render as inline SVG. Makes both EiconsDisabler
+ *                           and FA4ShimDisabler redundant on those pages.
+ *                           Elementor ships this as default-active for new
+ *                           sites since 3.17.0.
  *
- *   - `e_optimized_markup`         Removes unused wrapper `<div>` / `<span>` tags
- *                                  from widget output across the codebase (every
- *                                  widget file checks this in `has_widget_inner_wrapper`).
- *                                  Smaller DOM, faster paint. Default-active for
- *                                  new sites since 3.30.0; legacy installs stay off.
- *
- *   - `e_optimized_assets_loading` Elementor stops enqueuing widget-specific
- *                                  CSS for widgets not present on the page.
- *                                  Without this, every page ships the union
- *                                  of all installed widget styles.
- *
- *   - `e_lazyload`                 Elementor adds `loading="lazy"` to its own
- *                                  Image widget output. Native browser lazy
- *                                  load, no JavaScript, no measurable cost.
- *
- *   - `e_css_smooth_scroll`        Anchor-link smooth scroll runs as CSS
- *                                  `scroll-behavior: smooth` instead of via
- *                                  jQuery `$.animate()`. Drops a chunk of
- *                                  legacy JS from the critical path.
+ *   - `e_optimized_markup`  Removes unused wrapper `<div>` / `<span>` tags
+ *                           from widget output across the codebase (every
+ *                           widget file checks this in `has_widget_inner_wrapper`).
+ *                           Smaller DOM, faster paint. Default-active for
+ *                           new sites since 3.30.0; legacy installs stay off.
  *
  * Container and breakpoint experiments are intentionally NOT forced — those
  * change rendering behavior, not bloat output, and could break themes built
  * against the older Elementor layout model.
+ *
+ * Three more experiments (`e_optimized_assets_loading`, `e_lazyload`,
+ * `e_css_smooth_scroll`) that look like pure wins in isolation can produce
+ * CLS / LCP regressions on production sites:
+ *   - `e_lazyload` lazy-loads every Image widget, including above-fold ones;
+ *     images without explicit width/height trigger layout shift when they
+ *     arrive after first paint.
+ *   - `e_optimized_assets_loading` only ships per-widget CSS, but the
+ *     per-widget files don't exist until the user runs Elementor → Tools →
+ *     Regenerate Files & Data; without that, widgets briefly render unstyled.
+ * Those three are now exposed as the separate, opt-in {@see ExtraExperimentForcer}.
  */
 final class ExperimentForcer extends AbstractOptimizer {
 
@@ -65,9 +62,6 @@ final class ExperimentForcer extends AbstractOptimizer {
 	private const EXPERIMENTS = array(
 		'e_font_icon_svg',
 		'e_optimized_markup',
-		'e_optimized_assets_loading',
-		'e_lazyload',
-		'e_css_smooth_scroll',
 	);
 
 	public function id(): string {

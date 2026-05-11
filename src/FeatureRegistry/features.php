@@ -21,6 +21,7 @@ use Feather\Optimizers\Elementor\DomBloatRemover;
 use Feather\Optimizers\Elementor\EiconsDisabler;
 use Feather\Optimizers\Elementor\ElementorHostFirewall;
 use Feather\Optimizers\Elementor\ExperimentForcer;
+use Feather\Optimizers\Elementor\ExtraExperimentForcer;
 use Feather\Optimizers\Elementor\FA4ShimDisabler;
 use Feather\Optimizers\Elementor\FrontendAssetGate;
 use Feather\Optimizers\Elementor\FrontendLocalizeTrimmer;
@@ -80,6 +81,17 @@ return array(
 		'pro_candidate'   => false,
 		'default_enabled' => true,
 		'optimizer'       => ExperimentForcer::class,
+	),
+	array(
+		'id'              => 'f.elementor.force_extra_experiments',
+		'label'           => __( 'Force-enable extra Elementor experiments (advanced)', 'feather-performance' ),
+		'description'     => __( 'Activate Elementor\'s optimized-assets-loading, image lazy-load, and CSS smooth-scroll experiments. These look like pure wins but can cause CLS / LCP regressions: optimized-assets-loading needs you to run Elementor → Tools → Regenerate Files & Data first, and lazy-load lazy-loads above-fold images too — pair it with Auto-fix image dimensions. Default-off after the v0.2.1 regression.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_GATED,
+		'impact'          => FeatureMetadata::IMPACT_MEDIUM,
+		'pro_candidate'   => false,
+		'default_enabled' => false,
+		'optimizer'       => ExtraExperimentForcer::class,
 	),
 	array(
 		'id'              => 'f.elementor.fa4_shim',

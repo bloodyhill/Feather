@@ -14,16 +14,28 @@ use Feather\Optimizers\AbstractOptimizer;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Reduces Cumulative Layout Shift by ensuring every <img> in `the_content`
- * declares explicit width/height attributes.
+ * Reduces Cumulative Layout Shift by ensuring every <img> declares
+ * explicit width/height attributes — so the browser can reserve the
+ * correct box before the image bytes arrive.
  *
  * WordPress core already adds these for media-library attachments via
- * `wp_filter_content_tags`. This optimizer covers images Elementor (and
- * other builders) emit that bypass that filter — typically background or
- * external images referenced by URL only.
+ * `wp_filter_content_tags` inside `the_content`. This optimizer covers
+ * three additional paths:
  *
- * Strategy: if width/height are absent, attempt to look up dimensions for
- * any media-library attachment URL we recognise. External images we leave
+ *   - `the_content`              Catches anything still missing dimensions
+ *                                in the post body (e.g., classic editor
+ *                                pasted-HTML images, shortcode output).
+ *   - `elementor/widget/render_content` Elementor renders widget HTML
+ *                                through its own pipeline that bypasses
+ *                                `the_content` entirely. Without this
+ *                                hook, Image and Image Box widgets emit
+ *                                `<img>` tags that core never gets to
+ *                                rewrite. Critical CLS source when paired
+ *                                with `loading="lazy"`.
+ *   - `widget_text_content`      Sidebar text widgets pasted with HTML.
+ *
+ * Strategy: if width/height are absent, look up dimensions for any
+ * media-library attachment URL we recognise. External images are left
  * alone (we don't make HTTP requests just to measure them).
  */
 final class ImageDimensionsAdder extends AbstractOptimizer {
@@ -34,6 +46,8 @@ final class ImageDimensionsAdder extends AbstractOptimizer {
 
 	public function apply(): void {
 		add_filter( 'the_content', array( $this, 'add_dimensions' ), 99 );
+		// Elementor renders widgets outside `the_content` — catch them here.
+		add_filter( 'elementor/widget/render_content', array( $this, 'add_dimensions' ), 99 );
 	}
 
 	/**
