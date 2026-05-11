@@ -18,18 +18,36 @@ defined( 'ABSPATH' ) || exit;
  * sections that aren't currently in the viewport. Improves Time to
  * Interactive on long pages without breaking SEO (the DOM still exists).
  *
- * Targets the second-and-onwards Elementor section / Flexbox container /
- * WP block container — we deliberately skip the first one because it's
- * almost always above the fold and `content-visibility: auto` would defer
- * its paint by a frame.
+ * OPT-IN PER SECTION
+ * ──────────────────
+ * In Feather v0.2.3 and earlier, this optimizer auto-applied to every
+ * second-and-onwards `.elementor-section` / `.e-con` / `.wp-block-group`
+ * / `article` with a fixed 800px intrinsic-size placeholder. That
+ * caused catastrophic CLS on pages with varied section heights — every
+ * size mismatch between the 800px placeholder and the real content
+ * registers as a layout shift. Production sites measured CLS spikes
+ * from 0.02 to 0.9+.
  *
- * Both layout models are matched:
- *   - `.elementor-section`  — legacy Section/Column structure
- *   - `.e-con`              — Flexbox Container (Elementor 3.6+, default
- *                             on new sites since 3.16)
+ * v0.2.4 onwards, this optimizer only targets sections the user marks
+ * with the `feather-cv` CSS class in Elementor's Advanced → CSS Classes
+ * panel. The user picks which sections are below-fold AND tall-and-
+ * height-stable enough to benefit. Sections the user opts in with
+ * `feather-cv-NNN` (where NNN is a pixel height) get a custom
+ * intrinsic-size matching their actual rendered height — measure once,
+ * set forever.
  *
- * The `contain-intrinsic-size` reservation prevents scroll-jank when
- * sections enter the viewport.
+ * Pure CSS — no JavaScript, no DOM mutation.
+ *
+ * Usage examples (in Elementor editor → Advanced → CSS Classes):
+ *
+ *   feather-cv          → default 800px placeholder. Use when the
+ *                         section is roughly 700-900px tall.
+ *   feather-cv-1200     → 1200px placeholder. For taller sections.
+ *   feather-cv-400      → 400px placeholder. For shorter sections.
+ *
+ * Browser support: Chrome / Edge / Opera. Firefox and Safari ignore the
+ * property gracefully (the page renders normally with no optimization
+ * and no penalty).
  */
 final class BelowFoldRenderer extends AbstractOptimizer {
 
@@ -43,11 +61,29 @@ final class BelowFoldRenderer extends AbstractOptimizer {
 
 	/**
 	 * Emit the CSS rules to wp_head.
+	 *
+	 * Two rules:
+	 *   1. `.feather-cv` — default 800px placeholder for users who don't
+	 *       want to specify a height per section.
+	 *   2. `[class*="feather-cv-"]` — matches `feather-cv-NNN` variants
+	 *       where NNN is a pixel height. We can't read the number from
+	 *       the class via pure CSS, so we ship a small set of common
+	 *       heights (300/400/500/600/700/900/1000/1200/1500/2000 px).
+	 *       Users who need something else can use `.feather-cv` (800px
+	 *       default) or add custom CSS for an unusual size.
 	 */
 	public function print_styles(): void {
 		if ( is_admin() ) {
 			return;
 		}
-		echo "<style id=\"feather-below-fold\">.elementor-section:nth-of-type(n+2),.e-con:nth-of-type(n+2),.wp-block-group:nth-of-type(n+2),article:nth-of-type(n+2){content-visibility:auto;contain-intrinsic-size:0 800px}</style>\n";
+
+		$rules = array(
+			'.feather-cv{content-visibility:auto;contain-intrinsic-size:0 800px}',
+		);
+		foreach ( array( 300, 400, 500, 600, 700, 900, 1000, 1200, 1500, 2000 ) as $h ) {
+			$rules[] = sprintf( '.feather-cv-%1$d{content-visibility:auto;contain-intrinsic-size:0 %1$dpx}', $h );
+		}
+
+		echo '<style id="feather-below-fold">' . implode( '', $rules ) . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 }

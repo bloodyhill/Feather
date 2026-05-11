@@ -401,8 +401,8 @@ return array(
 	),
 	array(
 		'id'              => 'f.media.below_fold_render',
-		'label'           => __( 'Skip rendering off-screen sections', 'feather-performance' ),
-		'description'     => __( 'Apply CSS content-visibility:auto to below-the-fold sections so the browser defers their layout work until they enter the viewport.', 'feather-performance' ),
+		'label'           => __( 'Skip rendering off-screen sections (opt-in per section)', 'feather-performance' ),
+		'description'     => __( 'Emits content-visibility:auto CSS rules that defer rendering work for sections you mark with a feather-cv class in Elementor → Advanced → CSS Classes. Variants feather-cv-300 / 400 / 500 / 600 / 700 / 900 / 1000 / 1200 / 1500 / 2000 set a matching intrinsic-size placeholder so the section reserves its real height. Plain feather-cv defaults to 800px. v0.2.3 and earlier auto-applied this to every below-first section with a fixed 800px placeholder; that caused catastrophic CLS (up to 0.9) because the placeholder rarely matched real section heights. v0.2.4 onwards requires the class — safe by default.', 'feather-performance' ),
 		'category'        => FeatureMetadata::CATEGORY_MEDIA,
 		'risk'            => FeatureMetadata::RISK_GATED,
 		'impact'          => FeatureMetadata::IMPACT_MEDIUM,
