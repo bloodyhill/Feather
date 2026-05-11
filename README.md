@@ -4,8 +4,6 @@
 
 **A performance plugin for WordPress sites built with Elementor.**
 
-Trims Elementor's asset load, throttles WordPress overhead, cleans the database, and surfaces per-page measurements — all from one dashboard.
-
 [**featherplugin.com**](https://featherplugin.com/) &nbsp;·&nbsp; [WordPress.org listing](https://wordpress.org/plugins/feather-performance/) &nbsp;·&nbsp; [Report an issue](https://github.com/featherr/feather-performance/issues)
 
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b?logo=wordpress&logoColor=white)](https://wordpress.org/)
@@ -17,29 +15,75 @@ Trims Elementor's asset load, throttles WordPress overhead, cleans the database,
 
 ---
 
-## Why Feather
+## What Feather does
 
-Most performance plugins are content-blind: they minify, defer, and cache without knowing what your pages actually use. Feather reads each page's saved Elementor data, builds a map of which widgets and assets are in use, and only strips what's safe to strip. The result: smaller pages, fewer requests, no broken layouts.
+Feather reads your saved Elementor data to learn which widgets and assets each page actually uses, then removes the rest. Around that scan, it also turns off WordPress features most sites never use, throttles the parts that run on every admin tick, and cleans rows out of the database that accumulate over time.
 
-- **Per-page asset awareness.** A background scan inspects your saved Elementor data and produces a widget/asset map. Asset-stripping optimizations only unlock when the scan confirms zero usages site-wide.
-- **Safe defaults.** Conservative optimizations are active on first activation — skip Elementor's frontend bundle on non-Elementor pages, defer JavaScript, strip cache-busting query strings, throttle the admin heartbeat, disable WP emojis and embeds.
-- **Measured impact.** Page-weight snapshots track bytes, asset count, and HTTP request count against your real frontend over time.
-- **Database tooling.** One-click cleanup for expired transients, orphaned Elementor revisions, and oEmbed cache rows. Autoload audit flags any oversized always-loaded options.
-- **Privacy by default.** No telemetry. Scans run on your server. Page-weight measurements hit your own URLs. Nothing leaves your site without explicit opt-in.
+Everything Feather does is reversible from the dashboard. Nothing runs against your site from outside it.
 
-Learn more at **[featherplugin.com](https://featherplugin.com/)**.
+Project website: **[featherplugin.com](https://featherplugin.com/)**.
 
 ---
 
-## What Feather optimizes
+## Concretely, on activation Feather can:
 
-| Category | Examples |
-|----------|---------|
-| **Elementor frontend assets** | Font Awesome 4 shim, eicons, Google Fonts, JS defer, asset gating on non-Elementor pages, DOM-cruft removal |
-| **WordPress hygiene** | Emojis, embeds, jquery-migrate, heartbeat throttle, head cleanup, version disclosure |
-| **Lazy loading & media** | Iframe lazy attributes, image-dimension auto-fix, content-visibility for off-screen sections |
-| **Database** | Transient cleanup, Elementor revision pruning, oEmbed cache flush, autoload audit |
-| **Reporting** | Page-weight history, site-scan results, database health score |
+### Stop things WordPress runs that most sites don't need
+
+- Disable the WP emoji loader (`wp-emoji-release.min.js` and the inline detection script)
+- Disable oEmbed discovery and the embed JS bundle
+- Disable `jquery-migrate` on the frontend
+- Remove `<meta name="generator">` (WordPress version disclosure)
+- Remove RSD link, Windows Live Writer manifest, shortlink, REST link, and wlwmanifest from `<head>`
+- Disable XML-RPC pingback advertising
+- Strip cache-busting query strings (`?ver=…`) from static asset URLs
+- Turn off automatic feed links Elementor sites rarely use
+
+### Throttle things that run on every request or tick
+
+- Slow the admin heartbeat from 15s to 60s (configurable)
+- Disable heartbeat entirely on the dashboard and on post-edit screens when you don't need autosave broadcasts
+- Limit post revisions (configurable cap; default 5)
+- Increase autosave interval
+
+### Trim Elementor's asset load
+
+These activate **only** after a site scan confirms zero usages site-wide for each asset:
+
+- Dequeue Elementor's frontend bundle on pages that aren't built with Elementor
+- Dequeue the Font Awesome 4 shim when no widget references it
+- Dequeue eicons when no widget references it
+- Dequeue Google Fonts loaded by Elementor when no widget uses a Google font
+- Remove Elementor's DOM-cruft (empty wrapper divs, redundant inline styles)
+- Defer non-critical JavaScript
+
+### Improve media and rendering
+
+- Add `loading="lazy"` to iframes that don't already have it
+- Auto-fix `<img>` tags missing `width`/`height` attributes (prevents layout shift)
+- Apply `content-visibility: auto` to off-screen sections so the browser can skip their work
+
+### Clean the database
+
+One-click actions from the **Database** tab:
+
+- Delete expired transients (rows where `option_name LIKE '_transient_timeout_%'` and the value is in the past)
+- Prune orphaned Elementor revisions beyond a configurable keep count
+- Flush oEmbed cache rows (`_oembed_*` post meta)
+- Audit autoloaded options — flag any single option with autoload=`yes` over a configurable size threshold
+
+### Measure what changed
+
+- Take a page-weight snapshot of any URL from your site (bytes transferred, asset count, HTTP request count, response time)
+- Compare snapshots over time on the dashboard
+- Store the last 90 days of measurements in a custom table; older rows are pruned automatically
+
+### Stay off the network
+
+- **Zero outbound HTTP calls** in the default configuration
+- No telemetry, no analytics, no remote check-in pings
+- The scanner reads `_elementor_data` post meta from your local database only
+- Page-weight measurements are same-origin loopback `GET` requests to your own URLs via `wp_remote_get()`, triggered explicitly from the dashboard
+- No third-party CDNs, no Google Fonts, no remote JS loaded by the admin UI — the React bundle ships pre-built and only depends on WordPress's own bundled scripts
 
 ---
 
@@ -53,20 +97,20 @@ Learn more at **[featherplugin.com](https://featherplugin.com/)**.
 
 ## Installation
 
-### From WordPress.org (recommended)
+### From WordPress.org
 
-1. In your WordPress admin, go to **Plugins → Add New**.
+1. In your WordPress admin: **Plugins → Add New**.
 2. Search for **Feather Performance**.
 3. Click **Install Now**, then **Activate**.
 4. Open **Feather** in the admin sidebar, run the welcome scan, and apply a recommended preset.
 
 ### From a release zip
 
-1. Download the latest `feather-performance.zip` from the [Releases](https://github.com/featherr/feather-performance/releases) page.
-2. In your WordPress admin, go to **Plugins → Add New → Upload Plugin**.
-3. Choose the zip and click **Install Now**, then **Activate**.
+1. Download `feather-performance.zip` from the [Releases](https://github.com/featherr/feather-performance/releases) page.
+2. In WordPress admin: **Plugins → Add New → Upload Plugin**.
+3. Choose the zip, click **Install Now**, then **Activate**.
 
-### From source (developers)
+### From source
 
 ```bash
 git clone https://github.com/featherr/feather-performance.git
@@ -75,13 +119,13 @@ npm install
 npm run build
 ```
 
-Then symlink or copy the repository root into `wp-content/plugins/feather-performance/`.
+Then symlink or copy the repo root into `wp-content/plugins/feather-performance/`.
 
 ---
 
-## Compatibility
+## Plays well with caching and image plugins
 
-Feather auto-detects the following plugins and disables overlapping optimizations so it never duplicates work another plugin already handles:
+Feather detects these on activation and refuses to enable any optimization they already handle:
 
 - WP Rocket
 - LiteSpeed Cache
@@ -89,22 +133,27 @@ Feather auto-detects the following plugins and disables overlapping optimization
 - W3 Total Cache
 - Imagify
 - Smush
-- Most other caching and image-optimizer plugins
 
-Multisite is supported in compatible mode (per-site configuration). Network-level controls are planned for a later release.
+So you can leave your existing caching plugin in place. Feather only fills the gaps it leaves.
+
+Multisite is supported per-site. Network-level controls are planned.
 
 ---
 
-## Privacy & security
+## Security and data handling
 
-- **No telemetry.** No outbound network calls in the default configuration.
-- **Local scans only.** The site scanner reads `_elementor_data` post meta from the local database. It never makes external requests.
-- **Same-origin measurements.** Page-weight measurements issue a single loopback `GET` to your own site's URL via `wp_remote_get()`, triggered explicitly from the dashboard.
-- **Capability-gated.** All admin pages and REST endpoints gate on a custom `manage_feather` capability, mapped to `manage_options`.
-- **Hardened.** All input sanitized, all output escaped, all `$wpdb` queries use `prepare()`.
-- **No vendor lock-in.** All data lives in your database. Two custom tables (`wp_feather_scan`, `wp_feather_metrics`) are dropped on uninstall.
+- All admin pages and REST endpoints gate on a custom `manage_feather` capability, mapped to `manage_options` via the `user_has_cap` filter
+- Every REST endpoint implements `permission_callback`
+- Input is sanitized (`sanitize_text_field`, `absint`, enum allow-lists); output is escaped (`esc_html__`, `esc_url`, `esc_attr`)
+- Every `$wpdb` query with user-supplied values uses `prepare()`
+- Direct database operations (table truncate, OPTIMIZE TABLE, DELETE for cleanup) are scoped to plugin-owned tables and known WordPress core tables
 
-Full reviewer-facing security notes are kept in the upstream submission docs.
+### Custom tables created on activation
+
+- `wp_feather_scan` — one row per Elementor-built post, holding widget types, asset handles, and settings flags
+- `wp_feather_metrics` — page-weight measurement history; auto-pruned to 90 days
+
+Both tables are dropped by `uninstall.php` when you delete the plugin from WP admin.
 
 ---
 
@@ -117,7 +166,7 @@ Full reviewer-facing security notes are kept in the upstream submission docs.
 ├── feather-performance.php   # Plugin bootstrap
 ├── uninstall.php             # Drops custom tables on plugin deletion
 ├── src/                      # PHP source, PSR-4 autoloaded under Feather\
-│   ├── Optimizers/           # Optimization implementations
+│   ├── Optimizers/           # Each optimization above lives here
 │   ├── Scanner/              # Per-page Elementor data scanner
 │   ├── Metrics/              # Page-weight measurement
 │   ├── Db/                   # Database hygiene tools
@@ -125,7 +174,7 @@ Full reviewer-facing security notes are kept in the upstream submission docs.
 │   ├── Admin/                # Admin pages and asset registration
 │   └── …
 ├── ui/                       # React admin app (TypeScript)
-│   ├── src/                  # TypeScript source
+│   ├── src/
 │   └── package.json
 ├── assets/admin/             # Compiled React bundle (committed)
 ├── assets/icons/             # Plugin icons
@@ -147,9 +196,9 @@ npm test             # Jest unit tests via @wordpress/scripts
 
 ### PHP standards
 
-- Strict types declared in every file (`declare( strict_types=1 );`).
-- PSR-4 autoloading under the `Feather\` namespace via `src/Autoloader.php`.
-- No Composer runtime dependencies — the plugin ships without a `vendor/` directory.
+- `declare( strict_types=1 );` in every file
+- PSR-4 autoloading under the `Feather\` namespace via `src/Autoloader.php`
+- No Composer runtime dependencies — no `vendor/` directory ships
 
 ---
 
@@ -157,18 +206,18 @@ npm test             # Jest unit tests via @wordpress/scripts
 
 Issues and pull requests are welcome.
 
-1. Fork the repository and create a feature branch from `main`.
-2. Make your changes. Match the surrounding code style.
+1. Fork the repository and branch from `main`.
+2. Match the surrounding code style.
 3. Run the linters: `cd ui && npm run lint:js && npm run lint:css`.
-4. Open a pull request describing the change and why.
+4. Open a pull request describing the change.
 
-For larger changes, please open an issue first to discuss the approach.
+For larger changes, please open an issue first.
 
 ---
 
 ## Changelog
 
-See the **WordPress.org Changelog** in [`readme.txt`](readme.txt), or the [Releases](https://github.com/featherr/feather-performance/releases) page on GitHub for tagged builds.
+See [`readme.txt`](readme.txt) for the WordPress.org changelog, or the [Releases](https://github.com/featherr/feather-performance/releases) page for tagged builds.
 
 ### 0.1.0
 
@@ -178,7 +227,7 @@ Initial release.
 
 ## License
 
-Feather Performance is free software, released under the [GNU General Public License v2.0 or later](https://www.gnu.org/licenses/gpl-2.0.html). See [`LICENSE`](LICENSE) for the full text.
+Feather Performance is released under the [GNU General Public License v2.0 or later](https://www.gnu.org/licenses/gpl-2.0.html).
 
 ```
 Copyright (C) 2026  Feather
