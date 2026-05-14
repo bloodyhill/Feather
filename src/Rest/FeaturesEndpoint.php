@@ -180,14 +180,6 @@ final class FeaturesEndpoint implements RouteRegistrar {
 			);
 		}
 
-		if ( ! $this->gate->is_unlocked( $feature_id ) ) {
-			return new WP_Error(
-				'feather_feature_locked',
-				__( 'This feature is not available on your plan.', 'feather-performance' ),
-				array( 'status' => 403 )
-			);
-		}
-
 		$this->settings->set_enabled( $feature_id, $enabled );
 
 		return new WP_REST_Response( $this->serialize( $metadata ), 200 );
@@ -226,13 +218,6 @@ final class FeaturesEndpoint implements RouteRegistrar {
 				);
 				continue;
 			}
-			if ( ! $this->gate->is_unlocked( $feature_id ) ) {
-				$skipped[] = array(
-					'id'     => $feature_id,
-					'reason' => 'locked',
-				);
-				continue;
-			}
 			$this->settings->set_enabled( $feature_id, (bool) $enabled );
 			$applied[] = $feature_id;
 		}
@@ -253,10 +238,8 @@ final class FeaturesEndpoint implements RouteRegistrar {
 	 * @return array<string, mixed>
 	 */
 	private function serialize( FeatureMetadata $metadata ): array {
-		$base                  = $metadata->to_array();
-		$base['enabled']       = $this->settings->is_enabled( $metadata->id() );
-		$base['unlocked']      = $this->gate->is_unlocked( $metadata->id() );
-		$base['has_handler']   = (bool) $metadata->optimizer_class();
+		$base                   = $metadata->to_array();
+		$base['enabled']        = $this->settings->is_enabled( $metadata->id() );
 		$base['recommendation'] = $this->gate->recommendation_for( $metadata->id() );
 		return $base;
 	}

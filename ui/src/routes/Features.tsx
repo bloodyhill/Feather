@@ -88,14 +88,9 @@ export default function Features(): JSX.Element {
 										__nextHasNoMarginBottom
 										label={ feat.enabled ? __( 'Enabled', 'feather-performance' ) : __( 'Disabled', 'feather-performance' ) }
 										checked={ feat.enabled }
-										disabled={ ! feat.unlocked || pendingId === feat.id || ! feat.has_handler }
+										disabled={ pendingId === feat.id }
 										onChange={ ( next: boolean ) => handleToggle( feat.id, next ) }
 									/>
-									{ ! feat.has_handler && (
-										<small className="feather-feature-note">
-											{ __( 'Coming in a future release.', 'feather-performance' ) }
-										</small>
-									) }
 								</CardBody>
 							</Card>
 						) ) }

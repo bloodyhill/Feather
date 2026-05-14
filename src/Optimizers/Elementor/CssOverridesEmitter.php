@@ -69,18 +69,16 @@ final class CssOverridesEmitter extends AbstractOptimizer {
 	}
 
 	public function apply(): void {
-		add_action( 'wp_head', array( $this, 'print_style' ), 100 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_style' ) );
 	}
 
 	/**
-	 * Emit the override stylesheet inline. Inlining (vs. enqueue) avoids a
-	 * second request and lets the rules reach the parser before any below-
-	 * fold image starts loading.
+	 * Register and enqueue the override stylesheet inline via the standard
+	 * WordPress API. The empty-src handle exists only to anchor the inline
+	 * CSS; WordPress prints it alongside the rest of the page's stylesheets
+	 * during wp_head, before any below-fold image starts loading.
 	 */
-	public function print_style(): void {
-		if ( is_admin() ) {
-			return;
-		}
+	public function enqueue_style(): void {
 		if ( ! $this->detector->current_request_uses_elementor() ) {
 			return;
 		}
@@ -107,6 +105,9 @@ final class CssOverridesEmitter extends AbstractOptimizer {
 			. '@media(prefers-reduced-motion:reduce){.elementor-invisible{opacity:1!important;transform:none!important;animation:none!important;transition:none!important}.animated{animation:none!important}.elementor-motion-effects-element{will-change:auto!important;transform:none!important}.swiper-wrapper{transition-duration:0ms!important}}'
 			. '@media print{.elementor-widget-nav-menu,.elementor-widget-image-carousel,.elementor-widget-video,.elementor-widget-google_maps,.elementor-popup-modal,.elementor-motion-effects-container{display:none!important}.elementor-widget-text-editor,.elementor-heading-title{color:#000!important;background:transparent!important}.elementor-column{width:100%!important;float:none!important}.elementor-section,.elementor-column,.elementor-widget-wrap{box-shadow:none!important}}';
 
-		echo "<style id=\"feather-elementor-overrides\">" . $css . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		$handle = 'feather-elementor-overrides';
+		wp_register_style( $handle, false, array(), FEATHER_VERSION );
+		wp_enqueue_style( $handle );
+		wp_add_inline_style( $handle, $css );
 	}
 }

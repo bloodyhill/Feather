@@ -45,12 +45,6 @@ define( 'FEATHER_BASENAME', plugin_basename( __FILE__ ) );
 define( 'FEATHER_MIN_PHP', '7.4' );
 define( 'FEATHER_MIN_WP', '6.0' );
 
-// Phase 1 launch flag — every feature is unlocked while this is true.
-// The future feather-pro add-on may override this to enable paywalling.
-if ( ! defined( 'FEATHER_ALL_FREE' ) ) {
-	define( 'FEATHER_ALL_FREE', true );
-}
-
 // Composer-free PSR-4 autoloader for the Feather\ namespace.
 require_once FEATHER_DIR . 'src/Autoloader.php';
 

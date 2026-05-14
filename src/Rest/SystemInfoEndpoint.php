@@ -11,7 +11,6 @@ namespace Feather\Rest;
 
 use Feather\Admin\Capability;
 use Feather\Compat\PluginDetector;
-use Feather\License\LicenseManager;
 use Feather\Settings\SchemaMigrator;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -25,12 +24,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class SystemInfoEndpoint implements RouteRegistrar {
 
-	/**
-	 * License manager (used for install date).
-	 *
-	 * @var LicenseManager
-	 */
-	private $license;
+	public const INSTALL_DATE_OPTION = 'feather_install_date';
 
 	/**
 	 * Plugin detector.
@@ -42,11 +36,9 @@ final class SystemInfoEndpoint implements RouteRegistrar {
 	/**
 	 * Constructor.
 	 *
-	 * @param LicenseManager  $license  License.
-	 * @param PluginDetector  $detector Detector.
+	 * @param PluginDetector $detector Detector.
 	 */
-	public function __construct( LicenseManager $license, PluginDetector $detector ) {
-		$this->license  = $license;
+	public function __construct( PluginDetector $detector ) {
 		$this->detector = $detector;
 	}
 
@@ -80,7 +72,7 @@ final class SystemInfoEndpoint implements RouteRegistrar {
 			array(
 				'plugin'   => array(
 					'version'        => FEATHER_VERSION,
-					'install_date'   => $this->license->install_date(),
+					'install_date'   => $this->install_date(),
 					'schema_version' => SchemaMigrator::SCHEMA_VERSION,
 				),
 				'env'      => array(
@@ -93,5 +85,19 @@ final class SystemInfoEndpoint implements RouteRegistrar {
 			),
 			200
 		);
+	}
+
+	/**
+	 * The recorded install date (ISO 8601 GMT). Stamps it on first call
+	 * if not already set.
+	 */
+	private function install_date(): string {
+		$date = (string) get_option( self::INSTALL_DATE_OPTION, '' );
+		if ( '' === $date ) {
+			$date = gmdate( 'c' );
+			update_option( self::INSTALL_DATE_OPTION, $date, true );
+		}
+
+		return $date;
 	}
 }

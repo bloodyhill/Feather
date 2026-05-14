@@ -18,7 +18,7 @@ export default function About(): JSX.Element {
 				</p>
 				<p>
 					{ __(
-						'Feather is free. All features are unlocked.',
+						'Feather is free, open-source, and GPL-licensed.',
 						'feather-performance'
 					) }
 				</p>

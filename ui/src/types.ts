@@ -27,11 +27,8 @@ export interface Feature {
 	category: FeatureCategory;
 	risk: FeatureRisk;
 	impact: FeatureImpact;
-	pro_candidate: boolean;
 	default_enabled: boolean;
 	enabled: boolean;
-	unlocked: boolean;
-	has_handler: boolean;
 	recommendation: FeatureRecommendation;
 }
 

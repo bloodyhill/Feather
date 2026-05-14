@@ -196,9 +196,9 @@ export default function Dashboard(): JSX.Element {
 			{ quickWins.length > 0 && (
 				<Card>
 					<CardHeader>
-						<h2>{ __( 'Quick wins', 'feather-performance' ) }</h2>
+						<h2>{ __( 'Not running', 'feather-performance' ) }</h2>
 						<span className="feather-text-muted-mono">
-							{ __( 'high-impact, currently disabled', 'feather-performance' ) }
+							{ __( 'high-impact', 'feather-performance' ) }
 						</span>
 					</CardHeader>
 					<CardBody>
@@ -345,13 +345,9 @@ function computeStats( features: Feature[] ): {
 	totalImplementedCount: number;
 } {
 	let active = 0;
-	let total = 0;
+	const total = features.length;
 	for ( const f of features ) {
-		if ( ! f.has_handler ) {
-			continue;
-		}
-		total += 1;
-		if ( f.enabled && f.unlocked ) {
+		if ( f.enabled ) {
 			active += 1;
 		}
 	}
@@ -362,9 +358,7 @@ function pickQuickWins( features: Feature[] ): Feature[] {
 	return features
 		.filter(
 			( f ) =>
-				f.has_handler &&
 				! f.enabled &&
-				f.unlocked &&
 				( f.impact === 'high' || f.impact === 'medium' ) &&
 				f.recommendation !== 'dangerous' &&
 				f.recommendation !== 'risky'

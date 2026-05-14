@@ -13,8 +13,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Loads static feature definitions and applies the `feather/feature_registry`
- * filter so add-ons (the future feather-pro plugin or third parties) can
- * register their own features through the same surface free uses.
+ * filter so third-party add-ons can register their own features through the
+ * same surface Feather itself uses.
  */
 final class FeatureRegistry {
 

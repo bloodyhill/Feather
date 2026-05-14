@@ -1,6 +1,6 @@
 <?php
 /**
- * Feature gate — single decision point for feature unlock state.
+ * Feature gate — routes per-feature recommendations using scan results.
  *
  * @package Feather
  */
@@ -9,24 +9,16 @@ declare( strict_types=1 );
 
 namespace Feather\FeatureRegistry;
 
-use Feather\License\LicenseManager;
 use Feather\Scanner\ScanRepository;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Feather's launch-day kill switch and future paywall router.
+ * Decides the badge a feature should show in the dashboard.
  *
- * Phase 1 (launch): every registered feature is unlocked because the
- *   FEATHER_ALL_FREE constant is defined as true.
- *
- * Phase 2+ (post-paywall): when the future feather-pro add-on is active,
- *   it removes/redefines that constant. This class then defers to
- *   LicenseManager::is_pro_active() for `pro_candidate` features and
- *   honors the install-date grandfather flag.
- *
- * Critically: existing free optimizers never need to know whether
- * paywalling is active — they ask the gate, the gate handles policy.
+ * Every feature registered in the registry is available; this class
+ * only computes the recommendation surfaced in the UI based on the
+ * static risk and (for `gated` features) the latest scan results.
  */
 final class FeatureGate {
 
@@ -43,13 +35,6 @@ final class FeatureGate {
 	private $registry;
 
 	/**
-	 * License manager.
-	 *
-	 * @var LicenseManager
-	 */
-	private $license_manager;
-
-	/**
 	 * Scan repository (used by recommendation_for()).
 	 *
 	 * @var ScanRepository
@@ -60,40 +45,23 @@ final class FeatureGate {
 	 * Constructor.
 	 *
 	 * @param FeatureRegistry $registry         Feature registry.
-	 * @param LicenseManager  $license_manager  License manager.
 	 * @param ScanRepository  $scan_repository  Scan repository.
 	 */
 	public function __construct(
 		FeatureRegistry $registry,
-		LicenseManager $license_manager,
 		ScanRepository $scan_repository
 	) {
 		$this->registry        = $registry;
-		$this->license_manager = $license_manager;
 		$this->scan_repository = $scan_repository;
 	}
 
 	/**
-	 * Whether a feature is unlocked for this install right now.
+	 * Whether a feature is available on this install.
 	 *
 	 * @param string $feature_id Feature id.
 	 */
 	public function is_unlocked( string $feature_id ): bool {
-		if ( defined( 'FEATHER_ALL_FREE' ) && FEATHER_ALL_FREE ) {
-			return $this->registry->has( $feature_id );
-		}
-
-		$metadata = $this->registry->get( $feature_id );
-		if ( ! $metadata ) {
-			return false;
-		}
-
-		if ( ! $metadata->is_pro_candidate() ) {
-			return true;
-		}
-
-		// Grandfather check happens inside LicenseManager.
-		return $this->license_manager->is_pro_active();
+		return $this->registry->has( $feature_id );
 	}
 
 	/**

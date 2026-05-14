@@ -56,27 +56,22 @@ final class BelowFoldRenderer extends AbstractOptimizer {
 	}
 
 	public function apply(): void {
-		add_action( 'wp_head', array( $this, 'print_styles' ), 100 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
 	}
 
 	/**
-	 * Emit the CSS rules to wp_head.
+	 * Register an inline stylesheet via the standard WordPress API.
 	 *
 	 * Two rules:
 	 *   1. `.feather-cv` — default 800px placeholder for users who don't
 	 *       want to specify a height per section.
-	 *   2. `[class*="feather-cv-"]` — matches `feather-cv-NNN` variants
-	 *       where NNN is a pixel height. We can't read the number from
-	 *       the class via pure CSS, so we ship a small set of common
-	 *       heights (300/400/500/600/700/900/1000/1200/1500/2000 px).
-	 *       Users who need something else can use `.feather-cv` (800px
-	 *       default) or add custom CSS for an unusual size.
+	 *   2. `.feather-cv-NNN` — sized variants where NNN is a pixel height.
+	 *       We ship a small set of common heights
+	 *       (300/400/500/600/700/900/1000/1200/1500/2000 px). Users who
+	 *       need something else can use `.feather-cv` (800px default) or
+	 *       add custom CSS for an unusual size.
 	 */
-	public function print_styles(): void {
-		if ( is_admin() ) {
-			return;
-		}
-
+	public function enqueue_styles(): void {
 		$rules = array(
 			'.feather-cv{content-visibility:auto;contain-intrinsic-size:0 800px}',
 		);
@@ -84,6 +79,9 @@ final class BelowFoldRenderer extends AbstractOptimizer {
 			$rules[] = sprintf( '.feather-cv-%1$d{content-visibility:auto;contain-intrinsic-size:0 %1$dpx}', $h );
 		}
 
-		echo '<style id="feather-below-fold">' . implode( '', $rules ) . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		$handle = 'feather-below-fold';
+		wp_register_style( $handle, false, array(), FEATHER_VERSION );
+		wp_enqueue_style( $handle );
+		wp_add_inline_style( $handle, implode( '', $rules ) );
 	}
 }

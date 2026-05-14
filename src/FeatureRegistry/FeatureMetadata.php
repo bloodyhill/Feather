@@ -80,13 +80,6 @@ final class FeatureMetadata {
 	private $impact;
 
 	/**
-	 * Whether this feature is a candidate for a future Pro tier. Free at launch.
-	 *
-	 * @var bool
-	 */
-	private $pro_candidate;
-
-	/**
 	 * Whether the feature is enabled by default for new installs.
 	 *
 	 * @var bool
@@ -113,7 +106,6 @@ final class FeatureMetadata {
 		$this->category        = isset( $args['category'] ) ? (string) $args['category'] : self::CATEGORY_WP;
 		$this->risk            = isset( $args['risk'] ) ? (string) $args['risk'] : self::RISK_SAFE;
 		$this->impact          = isset( $args['impact'] ) ? (string) $args['impact'] : self::IMPACT_LOW;
-		$this->pro_candidate   = ! empty( $args['pro_candidate'] );
 		$this->default_enabled = ! empty( $args['default_enabled'] );
 		$this->optimizer_class = isset( $args['optimizer'] ) && is_string( $args['optimizer'] )
 			? $args['optimizer']
@@ -163,13 +155,6 @@ final class FeatureMetadata {
 	}
 
 	/**
-	 * Whether the feature is a Pro-candidate.
-	 */
-	public function is_pro_candidate(): bool {
-		return $this->pro_candidate;
-	}
-
-	/**
 	 * Default-enabled state for new installs.
 	 */
 	public function default_enabled(): bool {
@@ -196,7 +181,6 @@ final class FeatureMetadata {
 			'category'        => $this->category,
 			'risk'            => $this->risk,
 			'impact'          => $this->impact,
-			'pro_candidate'   => $this->pro_candidate,
 			'default_enabled' => $this->default_enabled,
 		);
 	}

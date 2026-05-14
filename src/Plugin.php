@@ -16,7 +16,6 @@ use Feather\Compat\PluginDetector;
 use Feather\Db\DbToolsService;
 use Feather\FeatureRegistry\FeatureGate;
 use Feather\FeatureRegistry\FeatureRegistry;
-use Feather\License\LicenseManager;
 use Feather\Metrics\MetricsRepository;
 use Feather\Metrics\PageWeightProbe;
 use Feather\Onboarding\OnboardingState;
@@ -40,9 +39,8 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Wires services into the container, fires the registration hook so
- * add-ons (the future feather-pro plugin or third-parties) can join,
- * loads features, and applies optimizers whose feature is unlocked,
- * enabled, and safe.
+ * third-party add-ons can join, loads features, and applies optimizers
+ * whose user setting is enabled and whose safety check passes.
  */
 final class Plugin {
 
@@ -111,9 +109,8 @@ final class Plugin {
 
 		$this->register_services();
 
-		// Load the text domain at init (per WP 6.7+ guidance — earlier loading
-		// can fail on translatable strings hooked before init runs).
-		add_action( 'init', array( $this, 'load_textdomain' ), 1 );
+		// Translations are auto-loaded by WordPress.org for the plugin slug
+		// since WP 4.6 — no load_plugin_textdomain() call needed.
 
 		// Surface a Settings link in the plugins list row.
 		add_filter( 'plugin_action_links_' . FEATHER_BASENAME, array( $this, 'plugin_action_links' ) );
@@ -121,17 +118,6 @@ final class Plugin {
 		add_action( 'plugins_loaded', array( $this, 'on_plugins_loaded' ), 20 );
 
 		$this->booted = true;
-	}
-
-	/**
-	 * Load the plugin's translation files. Hooked to `init` priority 1.
-	 */
-	public function load_textdomain(): void {
-		load_plugin_textdomain(
-			'feather-performance',
-			false,
-			dirname( FEATHER_BASENAME ) . '/languages'
-		);
 	}
 
 	/**
@@ -159,9 +145,6 @@ final class Plugin {
 	public function on_plugins_loaded(): void {
 		// Run schema migrations (cheap when up-to-date — guarded by version option).
 		( new SchemaMigrator() )->migrate();
-
-		// Stamp install_date for future grandfathering.
-		$this->container->get( LicenseManager::class )->install_date();
 
 		/**
 		 * Fires after Feather has wired its core services and before the
@@ -228,13 +211,6 @@ final class Plugin {
 		);
 
 		$this->container->singleton(
-			LicenseManager::class,
-			static function (): LicenseManager {
-				return new LicenseManager();
-			}
-		);
-
-		$this->container->singleton(
 			FeatureRegistry::class,
 			static function (): FeatureRegistry {
 				return new FeatureRegistry();
@@ -277,7 +253,6 @@ final class Plugin {
 			static function ( Container $c ): FeatureGate {
 				return new FeatureGate(
 					$c->get( FeatureRegistry::class ),
-					$c->get( LicenseManager::class ),
 					$c->get( ScanRepository::class )
 				);
 			}
@@ -398,7 +373,6 @@ final class Plugin {
 			SystemInfoEndpoint::class,
 			static function ( Container $c ): SystemInfoEndpoint {
 				return new SystemInfoEndpoint(
-					$c->get( LicenseManager::class ),
 					$c->get( PluginDetector::class )
 				);
 			}
@@ -436,8 +410,7 @@ final class Plugin {
 
 	/**
 	 * Iterate every registered feature and apply its optimizer when the
-	 * gate is open, the user setting is enabled, and the optimizer
-	 * reports it is safe.
+	 * user setting is enabled and the optimizer reports it is safe.
 	 */
 	private function apply_optimizers(): void {
 		/** @var SettingsRepository $settings */
@@ -447,14 +420,10 @@ final class Plugin {
 		}
 
 		$registry = $this->container->get( FeatureRegistry::class );
-		$gate     = $this->container->get( FeatureGate::class );
 
 		foreach ( $registry->all() as $metadata ) {
 			$class = $metadata->optimizer_class();
 			if ( ! is_string( $class ) || '' === $class || ! class_exists( $class ) ) {
-				continue;
-			}
-			if ( ! $gate->is_unlocked( $metadata->id() ) ) {
 				continue;
 			}
 			if ( ! $settings->is_enabled( $metadata->id() ) ) {

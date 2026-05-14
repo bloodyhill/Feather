@@ -35,17 +35,21 @@ final class LoadingOverlayRemover extends AbstractOptimizer {
 	}
 
 	public function apply(): void {
-		add_action( 'wp_head', array( $this, 'print_style' ), 0 );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_style' ) );
 	}
 
 	/**
-	 * Emit the hide rule. Priority 0 means it lands before any other
-	 * head content can paint the overlay.
+	 * Register and enqueue the hide rule inline via the standard WordPress
+	 * API. The `!important` guarantees the rule wins regardless of the
+	 * order WordPress prints stylesheets in wp_head.
 	 */
-	public function print_style(): void {
-		if ( is_admin() ) {
-			return;
-		}
-		echo "<style id=\"feather-no-loading-overlay\">#elementor-loading,.elementor-loading-overlay{display:none!important}</style>\n";
+	public function enqueue_style(): void {
+		$handle = 'feather-no-loading-overlay';
+		wp_register_style( $handle, false, array(), FEATHER_VERSION );
+		wp_enqueue_style( $handle );
+		wp_add_inline_style(
+			$handle,
+			'#elementor-loading,.elementor-loading-overlay{display:none!important}'
+		);
 	}
 }
