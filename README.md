@@ -108,7 +108,7 @@ One-click actions from the **Database** tab:
 
 ### From a release zip
 
-1. Download `feather-performance.zip` from the [Releases](https://github.com/featherr/feather-performance/releases) page.
+1. Download `feather-performance.zip` from the [Releases](https://github.com/bloodyhill/Feather/releases) page.
 2. In WordPress admin: **Plugins → Add New → Upload Plugin**.
 3. Choose the zip, click **Install Now**, then **Activate**.
 
