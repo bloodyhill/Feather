@@ -120,6 +120,14 @@ final class SettingsRepository {
 		$settings['schema_version'] = self::SCHEMA_VERSION;
 		update_option( self::OPTION_KEY, $settings, true );
 		$this->cache = $settings;
+
+		// Belt-and-braces cache invalidation. WordPress's update_option() is
+		// supposed to refresh the options cache, but some Redis, Memcached,
+		// and LiteSpeed object caches don't honor that invalidation across
+		// follow-up requests. Forcing a re-read on the next get_option()
+		// guarantees the canonical DB value is what subsequent requests see.
+		wp_cache_delete( self::OPTION_KEY, 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
 	}
 
 	/**

@@ -44,7 +44,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Plugin {
 
-	public const VERSION = '0.2.0';
+	public const VERSION = '0.2.7';
 
 	/**
 	 * Process-wide instance for the `feather_plugin()` global helper.
@@ -132,7 +132,7 @@ final class Plugin {
 		}
 		$settings_link = sprintf(
 			'<a href="%s">%s</a>',
-			esc_url( admin_url( 'admin.php?page=feather' ) ),
+			esc_url( admin_url( 'admin.php?page=' . AdminMenu::PAGE_SLUG ) ),
 			esc_html__( 'Settings', 'feather-performance' )
 		);
 		array_unshift( $links, $settings_link );

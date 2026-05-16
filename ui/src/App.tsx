@@ -8,6 +8,7 @@ import { useEffect, useState } from '@wordpress/element';
 import Sidebar from './components/Sidebar';
 import Mark from './components/Mark';
 import ThemeToggle from './components/ThemeToggle';
+import Footer from './components/Footer';
 import Dashboard from './routes/Dashboard';
 import Database from './routes/Database';
 import Features from './routes/Features';
@@ -93,6 +94,7 @@ export default function App(): JSX.Element {
 				{ route === 'database' && <Database /> }
 				{ route === 'settings' && <SettingsPanel /> }
 				{ route === 'about' && <About /> }
+				<Footer />
 			</main>
 		</div>
 	);

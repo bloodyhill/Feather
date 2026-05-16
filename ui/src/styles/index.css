@@ -266,6 +266,48 @@
 	}
 }
 
+.feather-footer {
+	margin-top: 48px;
+	padding-top: 20px;
+	border-top: 1px solid var( --feather-border );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	font-size: 13px;
+	color: var( --feather-text-subtle );
+}
+
+.feather-footer-prompt {
+	font-weight: 500;
+}
+
+.feather-footer-link {
+	color: var( --feather-accent );
+	text-decoration: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	transition: color 120ms ease;
+}
+
+.feather-footer-link:hover,
+.feather-footer-link:focus {
+	color: var( --feather-accent );
+	text-decoration: underline;
+}
+
+.feather-footer-link:focus-visible {
+	outline: 2px solid var( --feather-accent );
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.feather-footer-arrow {
+	font-size: 11px;
+	line-height: 1;
+}
+
 /* ──────────────────────────────────────────────────────────────────────
  * Cards (override @wordpress/components defaults to match the brand).
  * ────────────────────────────────────────────────────────────────────── */

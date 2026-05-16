@@ -27,6 +27,7 @@ export default function Scan(): JSX.Element {
 	const [ error, setError ] = useState< string | null >( null );
 	const [ pending, setPending ] = useState( false );
 	const pollTimer = useRef< number | null >( null );
+	const prevStateRef = useRef< string | undefined >( undefined );
 
 	useEffect( () => {
 		void refreshAll();
@@ -35,14 +36,23 @@ export default function Scan(): JSX.Element {
 	}, [] );
 
 	useEffect( () => {
+		const prev = prevStateRef.current;
+		prevStateRef.current = status?.state;
+
 		if ( status?.state === 'running' ) {
 			startPolling();
-		} else {
-			stopPolling();
-			if ( status?.state === 'complete' ) {
-				void refreshAggregate();
-				void refreshResults();
-			}
+			return;
+		}
+		stopPolling();
+
+		// Refresh aggregate + results on any transition out of `running`, not
+		// only on `complete`. Some object-cache configurations briefly return
+		// `idle` after the transient is overwritten by a final state, and the
+		// rows themselves are already persisted — re-reading on every exit
+		// from `running` makes the UI converge without a full page reload.
+		if ( prev === 'running' ) {
+			void refreshAggregate();
+			void refreshResults();
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ status?.state ] );

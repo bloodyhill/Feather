@@ -65,10 +65,16 @@ export default function Dashboard(): JSX.Element {
 		setMeasuring( true );
 		setError( null );
 		try {
-			const snapshot = await captureMetrics();
-			setLatest( snapshot );
-			const fresh = await fetchMetricsHistory( 30 );
-			setHistory( fresh );
+			await captureMetrics();
+			// Re-read from the server instead of trusting the capture response.
+			// Some object caches return stale or partial reads immediately after
+			// a write, so the canonical /latest endpoint is the source of truth.
+			const [ fresh, hist ] = await Promise.all( [
+				fetchLatestMetrics().catch( () => null ),
+				fetchMetricsHistory( 30 ).catch( () => ( { rows: [], count: 0 } ) ),
+			] );
+			setLatest( fresh );
+			setHistory( hist );
 		} catch ( err ) {
 			setError(
 				err instanceof Error ? err.message : __( 'Measurement failed.', 'feather-performance' )

@@ -27,6 +27,10 @@ build/
 *.zip
 *.tar.gz
 
+# --- WordPress.org listing assets (live only in the SVN repo's /assets/) ---
+assets/img/Screenshot*.png
+assets/img/screenshot-*.png
+
 # --- Editor / IDE ---
 .idea/
 .vscode/
