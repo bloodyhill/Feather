@@ -11,7 +11,11 @@
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b?logo=wordpress&logoColor=white)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?logo=php&logoColor=white)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
+<<<<<<< HEAD
 [![Version](https://img.shields.io/badge/version-0.2.9-e37339.svg)](feather-performance.php)
+=======
+[![Version](https://img.shields.io/badge/version-0.2.7-orange.svg)](feather-performance.php)
+>>>>>>> 03b86e818577993781498fb2034fde8a05ed608a
 
 </div>
 
@@ -108,7 +112,7 @@ One-click actions from the **Database** tab:
 
 ### From a release zip
 
-1. Download `feather-performance.zip` from the [Releases](https://github.com/featherr/feather-performance/releases) page.
+1. Download `feather-performance.zip` from the [Releases](https://github.com/bloodyhill/Feather/releases) page.
 2. In WordPress admin: **Plugins → Add New → Upload Plugin**.
 3. Choose the zip, click **Install Now**, then **Activate**.
 
