@@ -112,6 +112,9 @@ final class PerPageAssetTrimmer extends AbstractOptimizer {
 	 * owning widget isn't on this page according to the scan row.
 	 */
 	public function maybe_trim(): void {
+		if ( $this->is_disabled_for_current_request() ) {
+			return;
+		}
 		if ( ! $this->detector->current_request_uses_elementor() ) {
 			return;
 		}

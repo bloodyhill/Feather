@@ -10,6 +10,9 @@ declare( strict_types=1 );
 namespace Feather\Rest;
 
 use Feather\Admin\Capability;
+use Feather\FeatureRegistry\FeatureRegistry;
+use Feather\Settings\SettingsExporter;
+use Feather\Settings\SettingsImporter;
 use Feather\Settings\SettingsRepository;
 use WP_Error;
 use WP_REST_Request;
@@ -33,12 +36,21 @@ final class SettingsEndpoint implements RouteRegistrar {
 	private $settings;
 
 	/**
+	 * Feature registry — used when validating imports.
+	 *
+	 * @var FeatureRegistry
+	 */
+	private $registry;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SettingsRepository $settings Settings.
+	 * @param FeatureRegistry    $registry Feature registry.
 	 */
-	public function __construct( SettingsRepository $settings ) {
+	public function __construct( SettingsRepository $settings, FeatureRegistry $registry ) {
 		$this->settings = $settings;
+		$this->registry = $registry;
 	}
 
 	public function register_routes( string $namespace ): void {
@@ -90,6 +102,111 @@ final class SettingsEndpoint implements RouteRegistrar {
 				'permission_callback' => array( $this, 'permission_check' ),
 			)
 		);
+
+		register_rest_route(
+			$namespace,
+			'/settings/export',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'export_settings' ),
+				'permission_callback' => array( $this, 'permission_check' ),
+			)
+		);
+
+		register_rest_route(
+			$namespace,
+			'/settings/import',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'import_settings' ),
+				'permission_callback' => array( $this, 'permission_check' ),
+				'args'                => array(
+					'payload' => array(
+						'type'     => 'object',
+						'required' => true,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$namespace,
+			'/settings/heartbeat',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'write_heartbeat' ),
+				'permission_callback' => array( $this, 'permission_check' ),
+				'args'                => array(
+					'frontend_disabled' => array( 'type' => 'boolean', 'required' => false ),
+					'editor_interval'   => array( 'type' => 'integer', 'required' => false ),
+					'admin_interval'    => array( 'type' => 'integer', 'required' => false ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * GET /settings/export.
+	 *
+	 * Returns a JSON document a user can save and re-import on another site.
+	 * The Content-Disposition header asks the browser to treat the response
+	 * as a download.
+	 */
+	public function export_settings( WP_REST_Request $request ): WP_REST_Response {
+		unset( $request );
+		$exporter = new SettingsExporter( $this->settings );
+		$response = new WP_REST_Response( $exporter->export(), 200 );
+		$response->header( 'Content-Disposition', 'attachment; filename="feather-settings-' . gmdate( 'Ymd-His' ) . '.json"' );
+		return $response;
+	}
+
+	/**
+	 * POST /settings/import.
+	 *
+	 * Accepts the export shape under the `payload` parameter.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function import_settings( WP_REST_Request $request ) {
+		$payload = $request->get_param( 'payload' );
+		if ( ! is_array( $payload ) ) {
+			return new WP_Error(
+				'feather_invalid_import',
+				__( 'Import payload must be the contents of a Feather settings export file.', 'feather-performance' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$importer = new SettingsImporter( $this->settings, $this->registry );
+		$issues   = $importer->validate( $payload );
+		if ( ! empty( $issues ) ) {
+			return new WP_Error(
+				'feather_import_rejected',
+				implode( ' ', $issues ),
+				array(
+					'status' => 400,
+					'issues' => $issues,
+				)
+			);
+		}
+
+		$summary = $importer->apply( $payload );
+		return new WP_REST_Response( $summary, 200 );
+	}
+
+	/**
+	 * POST /settings/heartbeat — write per-context heartbeat overrides.
+	 */
+	public function write_heartbeat( WP_REST_Request $request ): WP_REST_Response {
+		$advanced = array();
+		foreach ( array( 'frontend_disabled', 'editor_interval', 'admin_interval' ) as $key ) {
+			$value = $request->get_param( $key );
+			if ( null !== $value ) {
+				$advanced[ $key ] = $value;
+			}
+		}
+		$this->settings->set_heartbeat_advanced( $advanced );
+		return new WP_REST_Response( $this->settings->heartbeat_advanced(), 200 );
 	}
 
 	/**

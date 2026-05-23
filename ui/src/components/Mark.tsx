@@ -7,18 +7,35 @@
  */
 
 import { __ } from '@wordpress/i18n';
+import type { Theme } from '../types';
 
 interface Props {
 	/** Pixel size; height = width. Default 24. */
 	size?: number;
-	/** 'auto' uses the active document theme; 'ink' / 'cream' force a variant. */
+	/**
+	 * 'auto' (default) resolves the variant from the active document theme.
+	 * 'ink' / 'cream' force a variant.
+	 *
+	 * Prefer passing `theme` instead of relying on `auto` — `auto` reads
+	 * `data-theme` off `<html>`, which isn't always set yet at the moment
+	 * the first render runs (the App's applyTheme effect fires after paint),
+	 * so the variant can briefly land on the wrong one when the OS prefers
+	 * a different scheme from the user's saved Feather theme.
+	 */
 	variant?: 'auto' | 'ink' | 'cream';
+	/** When provided, used to resolve 'auto' without touching the DOM. */
+	theme?: Theme;
 	className?: string;
 }
 
-export default function Mark( { size = 24, variant = 'auto', className }: Props ): JSX.Element {
+export default function Mark( {
+	size = 24,
+	variant = 'auto',
+	theme,
+	className,
+}: Props ): JSX.Element {
 	const logos = window.feather?.boot?.logos;
-	const resolved = resolveVariant( variant );
+	const resolved = resolveVariant( variant, theme );
 	const url = resolved === 'cream' ? logos?.cream : logos?.ink;
 
 	if ( url ) {
@@ -56,9 +73,20 @@ export default function Mark( { size = 24, variant = 'auto', className }: Props 
 	);
 }
 
-function resolveVariant( v: 'auto' | 'ink' | 'cream' ): 'ink' | 'cream' {
+function resolveVariant(
+	v: 'auto' | 'ink' | 'cream',
+	theme: Theme | undefined
+): 'ink' | 'cream' {
 	if ( v !== 'auto' ) {
 		return v;
+	}
+	// Prefer the explicit theme prop when the caller knows it. This avoids
+	// the data-theme attribute timing window described in the Props doc.
+	if ( theme === 'light' ) {
+		return 'ink';
+	}
+	if ( theme === 'dark' ) {
+		return 'cream';
 	}
 	const docTheme = document.documentElement.getAttribute( 'data-theme' );
 	if ( docTheme === 'dark' ) {
@@ -67,8 +95,11 @@ function resolveVariant( v: 'auto' | 'ink' | 'cream' ): 'ink' | 'cream' {
 	if ( docTheme === 'light' ) {
 		return 'ink';
 	}
-	// 'system' — read prefers-color-scheme.
-	if ( window.matchMedia && window.matchMedia( '(prefers-color-scheme: dark)' ).matches ) {
+	// 'system' (explicit or implied) — read prefers-color-scheme.
+	if (
+		window.matchMedia &&
+		window.matchMedia( '(prefers-color-scheme: dark)' ).matches
+	) {
 		return 'cream';
 	}
 	return 'ink';

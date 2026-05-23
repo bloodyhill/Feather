@@ -22,7 +22,9 @@ const POLL_INTERVAL_MS = 1500;
 
 export default function Scan(): JSX.Element {
 	const [ status, setStatus ] = useState< ScanStatus | null >( null );
-	const [ aggregate, setAggregate ] = useState< ScanAggregate | null >( null );
+	const [ aggregate, setAggregate ] = useState< ScanAggregate | null >(
+		null
+	);
 	const [ results, setResults ] = useState< ScanResultsPage | null >( null );
 	const [ error, setError ] = useState< string | null >( null );
 	const [ pending, setPending ] = useState( false );
@@ -32,7 +34,6 @@ export default function Scan(): JSX.Element {
 	useEffect( () => {
 		void refreshAll();
 		return () => stopPolling();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [] );
 
 	useEffect( () => {
@@ -45,12 +46,12 @@ export default function Scan(): JSX.Element {
 		}
 		stopPolling();
 
-		// Refresh aggregate + results on any transition out of `running`, not
-		// only on `complete`. Some object-cache configurations briefly return
-		// `idle` after the transient is overwritten by a final state, and the
-		// rows themselves are already persisted — re-reading on every exit
-		// from `running` makes the UI converge without a full page reload.
-		if ( prev === 'running' ) {
+		// Belt-and-braces: after any non-running state — including the
+		// initial idle → loaded transition and the running → complete /
+		// canceled / failed transitions — pull fresh aggregate + results
+		// once more so the UI matches the server even if the live poll
+		// already wrote them.
+		if ( prev === 'running' || ( prev === undefined && status?.state ) ) {
 			void refreshAggregate();
 			void refreshResults();
 		}
@@ -60,8 +61,23 @@ export default function Scan(): JSX.Element {
 	function startPolling(): void {
 		stopPolling();
 		pollTimer.current = window.setInterval( () => {
-			void fetchScanStatus()
-				.then( setStatus )
+			// Pull status + aggregate + results together every tick. The
+			// aggregate + results endpoints are cheap (one cached options
+			// read + one paginated SELECT) and fetching them progressively
+			// during a scan makes results converge in the UI without
+			// waiting for the final state transition. This also dodges the
+			// object-cache race where state briefly reads `idle` between
+			// the last batch and the `complete` transient write.
+			void Promise.all( [
+				fetchScanStatus(),
+				fetchScanAggregate(),
+				fetchScanResults( 1, 50 ),
+			] )
+				.then( ( [ s, a, r ] ) => {
+					setStatus( s );
+					setAggregate( a );
+					setResults( r );
+				} )
 				.catch( ( err: Error ) => setError( err.message ) );
 		}, POLL_INTERVAL_MS );
 	}
@@ -85,7 +101,9 @@ export default function Scan(): JSX.Element {
 			setResults( r );
 		} catch ( err ) {
 			setError(
-				err instanceof Error ? err.message : __( 'Failed to load scan state.', 'feather-performance' )
+				err instanceof Error
+					? err.message
+					: __( 'Failed to load scan state.', 'feather-performance' )
 			);
 		}
 	}
@@ -93,7 +111,7 @@ export default function Scan(): JSX.Element {
 	async function refreshAggregate(): Promise< void > {
 		try {
 			setAggregate( await fetchScanAggregate() );
-		} catch ( _ ) {
+		} catch {
 			/* swallow — UI just shows the previous values */
 		}
 	}
@@ -101,7 +119,7 @@ export default function Scan(): JSX.Element {
 	async function refreshResults(): Promise< void > {
 		try {
 			setResults( await fetchScanResults( 1, 50 ) );
-		} catch ( _ ) {
+		} catch {
 			/* swallow */
 		}
 	}
@@ -114,7 +132,9 @@ export default function Scan(): JSX.Element {
 			setStatus( s );
 		} catch ( err ) {
 			setError(
-				err instanceof Error ? err.message : __( 'Could not start scan.', 'feather-performance' )
+				err instanceof Error
+					? err.message
+					: __( 'Could not start scan.', 'feather-performance' )
 			);
 		} finally {
 			setPending( false );
@@ -128,7 +148,9 @@ export default function Scan(): JSX.Element {
 			setStatus( s );
 		} catch ( err ) {
 			setError(
-				err instanceof Error ? err.message : __( 'Could not cancel scan.', 'feather-performance' )
+				err instanceof Error
+					? err.message
+					: __( 'Could not cancel scan.', 'feather-performance' )
 			);
 		} finally {
 			setPending( false );
@@ -144,12 +166,18 @@ export default function Scan(): JSX.Element {
 	}
 
 	const progressPct =
-		status.total > 0 ? Math.round( ( status.processed / status.total ) * 100 ) : 0;
+		status.total > 0
+			? Math.round( ( status.processed / status.total ) * 100 )
+			: 0;
 
 	return (
 		<div className="feather-scan">
 			{ error && (
-				<Notice status="error" isDismissible onRemove={ () => setError( null ) }>
+				<Notice
+					status="error"
+					isDismissible
+					onRemove={ () => setError( null ) }
+				>
 					{ error }
 				</Notice>
 			) }
@@ -165,7 +193,10 @@ export default function Scan(): JSX.Element {
 					/>
 				</CardHeader>
 				<CardBody>
-					<ScanStatusLine status={ status } progressPct={ progressPct } />
+					<ScanStatusLine
+						status={ status }
+						progressPct={ progressPct }
+					/>
 				</CardBody>
 			</Card>
 
@@ -176,26 +207,28 @@ export default function Scan(): JSX.Element {
 				</>
 			) }
 
-			{ aggregate && ! aggregate.has_results && status.state !== 'running' && (
-				<Card>
-					<CardBody>
-						<p>
-							{ __(
-								'No scan results yet. Run a scan to see which Elementor widgets and assets your site uses.',
-								'feather-performance'
-							) }
-						</p>
-						<p>
-							<small>
+			{ aggregate &&
+				! aggregate.has_results &&
+				status.state !== 'running' && (
+					<Card>
+						<CardBody>
+							<p>
 								{ __(
-									'Feather reads your saved Elementor data only. No pages are rendered. No data leaves your server.',
+									'No scan results yet. Run a scan to see which Elementor widgets and assets your site uses.',
 									'feather-performance'
 								) }
-							</small>
-						</p>
-					</CardBody>
-				</Card>
-			) }
+							</p>
+							<p>
+								<small>
+									{ __(
+										'Feather reads your saved Elementor data only. No pages are rendered. No data leaves your server.',
+										'feather-performance'
+									) }
+								</small>
+							</p>
+						</CardBody>
+					</Card>
+				) }
 		</div>
 	);
 }
@@ -213,14 +246,26 @@ function ScanActions( {
 } ): JSX.Element {
 	if ( state === 'running' ) {
 		return (
-			<Button variant="secondary" onClick={ onCancel } isBusy={ pending } disabled={ pending }>
+			<Button
+				variant="secondary"
+				onClick={ onCancel }
+				isBusy={ pending }
+				disabled={ pending }
+			>
 				{ __( 'Cancel scan', 'feather-performance' ) }
 			</Button>
 		);
 	}
 	return (
-		<Button variant="primary" onClick={ onStart } isBusy={ pending } disabled={ pending }>
-			{ state === 'complete' ? __( 'Re-run scan', 'feather-performance' ) : __( 'Run scan', 'feather-performance' ) }
+		<Button
+			variant="primary"
+			onClick={ onStart }
+			isBusy={ pending }
+			disabled={ pending }
+		>
+			{ state === 'complete'
+				? __( 'Re-run scan', 'feather-performance' )
+				: __( 'Run scan', 'feather-performance' ) }
 		</Button>
 	);
 }
@@ -238,13 +283,25 @@ function ScanStatusLine( {
 				<p>
 					{ sprintf(
 						/* translators: %1$d processed, %2$d total */
-						__( 'Scanning %1$d of %2$d pages…', 'feather-performance' ),
+						__(
+							'Scanning %1$d of %2$d pages…',
+							'feather-performance'
+						),
 						status.processed,
 						status.total
 					) }
 				</p>
-				<div className="feather-progress" role="progressbar" aria-valuenow={ progressPct } aria-valuemin={ 0 } aria-valuemax={ 100 }>
-					<div className="feather-progress-bar" style={ { width: `${ progressPct }%` } } />
+				<div
+					className="feather-progress"
+					role="progressbar"
+					aria-valuenow={ progressPct }
+					aria-valuemin={ 0 }
+					aria-valuemax={ 100 }
+				>
+					<div
+						className="feather-progress-bar"
+						style={ { width: `${ progressPct }%` } }
+					/>
 				</div>
 			</div>
 		);
@@ -267,40 +324,67 @@ function ScanStatusLine( {
 		return <p>{ __( 'Scan was canceled.', 'feather-performance' ) }</p>;
 	}
 	if ( status.state === 'failed' ) {
-		return <p>{ status.error || __( 'Scan failed.', 'feather-performance' ) }</p>;
+		return (
+			<p>
+				{ status.error || __( 'Scan failed.', 'feather-performance' ) }
+			</p>
+		);
 	}
 	return <p>{ status.state }</p>;
 }
 
-function AggregateSummary( { aggregate }: { aggregate: ScanAggregate } ): JSX.Element {
+function AggregateSummary( {
+	aggregate,
+}: {
+	aggregate: ScanAggregate;
+} ): JSX.Element {
 	const widgetTotal = Object.keys( aggregate.widget_counts ).length;
 	const assetTotal = Object.keys( aggregate.asset_counts ).length;
 	// Highlight rule: a count of 0 is "success" (nothing to trim/optimize away)
 	// because each tile flags a specific asset family Feather can remove.
 	return (
 		<div className="feather-stat-row">
-			<StatTile label={ __( 'Pages scanned', 'feather-performance' ) } value={ aggregate.total_pages } />
-			<StatTile label={ __( 'Widget types', 'feather-performance' ) } value={ widgetTotal } />
-			<StatTile label={ __( 'Assets tracked', 'feather-performance' ) } value={ assetTotal } />
+			<StatTile
+				label={ __( 'Pages scanned', 'feather-performance' ) }
+				value={ aggregate.total_pages }
+			/>
+			<StatTile
+				label={ __( 'Widget types', 'feather-performance' ) }
+				value={ widgetTotal }
+			/>
+			<StatTile
+				label={ __( 'Assets tracked', 'feather-performance' ) }
+				value={ assetTotal }
+			/>
 			<StatTile
 				label={ __( 'eicons usages', 'feather-performance' ) }
 				value={ aggregate.eicons_usage_count }
-				highlight={ aggregate.eicons_usage_count === 0 ? 'success' : 'warning' }
+				highlight={
+					aggregate.eicons_usage_count === 0 ? 'success' : 'warning'
+				}
 			/>
 			<StatTile
 				label={ __( 'FA icon usages', 'feather-performance' ) }
 				value={ aggregate.fa_icons_usage_count }
-				highlight={ aggregate.fa_icons_usage_count === 0 ? 'success' : 'warning' }
+				highlight={
+					aggregate.fa_icons_usage_count === 0 ? 'success' : 'warning'
+				}
 			/>
 			<StatTile
 				label={ __( 'Google Fonts pages', 'feather-performance' ) }
 				value={ aggregate.google_fonts_usage_count }
-				highlight={ aggregate.google_fonts_usage_count === 0 ? 'success' : 'warning' }
+				highlight={
+					aggregate.google_fonts_usage_count === 0
+						? 'success'
+						: 'warning'
+				}
 			/>
 			<StatTile
 				label={ __( 'Lottie usages', 'feather-performance' ) }
 				value={ aggregate.lottie_usage_count }
-				highlight={ aggregate.lottie_usage_count === 0 ? 'success' : 'warning' }
+				highlight={
+					aggregate.lottie_usage_count === 0 ? 'success' : 'warning'
+				}
 			/>
 		</div>
 	);
@@ -316,7 +400,11 @@ function StatTile( {
 	highlight?: 'success' | 'warning';
 } ): JSX.Element {
 	return (
-		<div className={ `feather-stat-tile${ highlight ? ` is-${ highlight }` : '' }` }>
+		<div
+			className={ `feather-stat-tile${
+				highlight ? ` is-${ highlight }` : ''
+			}` }
+		>
 			<div className="feather-stat-value">{ value }</div>
 			<div className="feather-stat-label">{ label }</div>
 		</div>
@@ -335,17 +423,35 @@ function ResultsTabs( {
 			<CardBody>
 				<TabPanel
 					tabs={ [
-						{ name: 'widgets', title: __( 'Widgets', 'feather-performance' ), className: '' },
-						{ name: 'assets', title: __( 'Assets', 'feather-performance' ), className: '' },
-						{ name: 'pages', title: __( 'Pages', 'feather-performance' ), className: '' },
+						{
+							name: 'widgets',
+							title: __( 'Widgets', 'feather-performance' ),
+							className: '',
+						},
+						{
+							name: 'assets',
+							title: __( 'Assets', 'feather-performance' ),
+							className: '',
+						},
+						{
+							name: 'pages',
+							title: __( 'Pages', 'feather-performance' ),
+							className: '',
+						},
 					] }
 				>
 					{ ( tab ) => {
 						if ( tab.name === 'widgets' ) {
-							return <CountTable counts={ aggregate.widget_counts } />;
+							return (
+								<CountTable
+									counts={ aggregate.widget_counts }
+								/>
+							);
 						}
 						if ( tab.name === 'assets' ) {
-							return <CountTable counts={ aggregate.asset_counts } />;
+							return (
+								<CountTable counts={ aggregate.asset_counts } />
+							);
 						}
 						return <PagesTable rows={ results?.rows ?? [] } />;
 					} }
@@ -355,7 +461,11 @@ function ResultsTabs( {
 	);
 }
 
-function CountTable( { counts }: { counts: Record< string, number > } ): JSX.Element {
+function CountTable( {
+	counts,
+}: {
+	counts: Record< string, number >;
+} ): JSX.Element {
 	const sorted = Object.entries( counts ).sort( ( a, b ) => b[ 1 ] - a[ 1 ] );
 	if ( sorted.length === 0 ) {
 		return <p>{ __( 'No entries.', 'feather-performance' ) }</p>;
@@ -365,13 +475,17 @@ function CountTable( { counts }: { counts: Record< string, number > } ): JSX.Ele
 			<thead>
 				<tr>
 					<th>{ __( 'Name', 'feather-performance' ) }</th>
-					<th style={ { textAlign: 'right' } }>{ __( 'Pages', 'feather-performance' ) }</th>
+					<th style={ { textAlign: 'right' } }>
+						{ __( 'Pages', 'feather-performance' ) }
+					</th>
 				</tr>
 			</thead>
 			<tbody>
 				{ sorted.map( ( [ name, count ] ) => (
 					<tr key={ name }>
-						<td><code>{ name }</code></td>
+						<td>
+							<code>{ name }</code>
+						</td>
 						<td style={ { textAlign: 'right' } }>{ count }</td>
 					</tr>
 				) ) }
@@ -380,7 +494,11 @@ function CountTable( { counts }: { counts: Record< string, number > } ): JSX.Ele
 	);
 }
 
-function PagesTable( { rows }: { rows: import( '../types' ).ScanResultRow[] } ): JSX.Element {
+function PagesTable( {
+	rows,
+}: {
+	rows: import('../types').ScanResultRow[];
+} ): JSX.Element {
 	if ( rows.length === 0 ) {
 		return <p>{ __( 'No pages scanned yet.', 'feather-performance' ) }</p>;
 	}

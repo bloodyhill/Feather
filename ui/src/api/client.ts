@@ -14,11 +14,15 @@ import type {
 	DbToolName,
 	Feature,
 	FeaturesResponse,
+	HeartbeatAdvanced,
 	MetricsHistory,
 	OnboardingStateName,
 	OnboardingStatus,
 	PageWeightSnapshot,
+	PostOverrides,
 	Preset,
+	SettingsExport,
+	SettingsImportSummary,
 	SystemInfo,
 	ScanAggregate,
 	ScanResultsPage,
@@ -42,7 +46,11 @@ export function initApiClient(): void {
 		initialized = true;
 		return;
 	}
-	apiFetch.use( apiFetch.createRootURLMiddleware( boot.restRoot.replace( /\/feather\/v1\/?$/, '/' ) ) );
+	apiFetch.use(
+		apiFetch.createRootURLMiddleware(
+			boot.restRoot.replace( /\/feather\/v1\/?$/, '/' )
+		)
+	);
 	apiFetch.use( apiFetch.createNonceMiddleware( boot.restNonce ) );
 	initialized = true;
 }
@@ -68,7 +76,10 @@ export async function toggleFeature(
 
 export async function bulkUpdateFeatures(
 	updates: Record< string, boolean >
-): Promise< { applied: string[]; skipped: Array< { id: string; reason: string } > } > {
+): Promise< {
+	applied: string[];
+	skipped: Array< { id: string; reason: string } >;
+} > {
 	return apiFetch( {
 		path: path( '/features/bulk' ),
 		method: 'POST',
@@ -81,7 +92,12 @@ export async function fetchSettings(): Promise< SettingsResponse > {
 }
 
 export async function updateSettings(
-	patch: Partial< { preset: Preset; theme: Theme; usage_opt_in: boolean; optimizers_paused: boolean } >
+	patch: Partial< {
+		preset: Preset;
+		theme: Theme;
+		usage_opt_in: boolean;
+		optimizers_paused: boolean;
+	} >
 ): Promise< SettingsResponse > {
 	return apiFetch< SettingsResponse >( {
 		path: path( '/settings' ),
@@ -129,7 +145,9 @@ export async function fetchDbAutoload(): Promise< DbAutoloadAudit > {
 	return apiFetch< DbAutoloadAudit >( { path: path( '/db/autoload' ) } );
 }
 
-export async function runDbCleanup( tool: DbToolName ): Promise< DbCleanupResult > {
+export async function runDbCleanup(
+	tool: DbToolName
+): Promise< DbCleanupResult > {
 	return apiFetch< DbCleanupResult >( {
 		path: path( `/db/cleanup/${ encodeURIComponent( tool ) }` ),
 		method: 'POST',
@@ -144,17 +162,23 @@ export async function captureMetrics(): Promise< PageWeightSnapshot > {
 }
 
 export async function fetchLatestMetrics(): Promise< PageWeightSnapshot | null > {
-	return apiFetch< PageWeightSnapshot | null >( { path: path( '/metrics/latest' ) } );
+	return apiFetch< PageWeightSnapshot | null >( {
+		path: path( '/metrics/latest' ),
+	} );
 }
 
-export async function fetchMetricsHistory( limit = 30 ): Promise< MetricsHistory > {
+export async function fetchMetricsHistory(
+	limit = 30
+): Promise< MetricsHistory > {
 	return apiFetch< MetricsHistory >( {
 		path: path( `/metrics/history?limit=${ limit }` ),
 	} );
 }
 
 export async function fetchOnboardingState(): Promise< OnboardingStatus > {
-	return apiFetch< OnboardingStatus >( { path: path( '/onboarding/state' ) } );
+	return apiFetch< OnboardingStatus >( {
+		path: path( '/onboarding/state' ),
+	} );
 }
 
 export async function setOnboardingState(
@@ -181,4 +205,47 @@ export async function clearScanData(): Promise< unknown > {
 
 export async function clearMetricsData(): Promise< unknown > {
 	return apiFetch( { path: path( '/metrics/clear' ), method: 'POST' } );
+}
+
+export async function exportSettings(): Promise< SettingsExport > {
+	return apiFetch< SettingsExport >( { path: path( '/settings/export' ) } );
+}
+
+export async function importSettings(
+	payload: SettingsExport
+): Promise< SettingsImportSummary > {
+	return apiFetch< SettingsImportSummary >( {
+		path: path( '/settings/import' ),
+		method: 'POST',
+		data: { payload },
+	} );
+}
+
+export async function updateHeartbeatAdvanced(
+	patch: Partial< HeartbeatAdvanced >
+): Promise< HeartbeatAdvanced > {
+	return apiFetch< HeartbeatAdvanced >( {
+		path: path( '/settings/heartbeat' ),
+		method: 'POST',
+		data: patch,
+	} );
+}
+
+export async function fetchPostOverrides(
+	postId: number
+): Promise< PostOverrides > {
+	return apiFetch< PostOverrides >( {
+		path: path( `/posts/${ postId }/overrides` ),
+	} );
+}
+
+export async function updatePostOverrides(
+	postId: number,
+	disabled: string[]
+): Promise< PostOverrides > {
+	return apiFetch< PostOverrides >( {
+		path: path( `/posts/${ postId }/overrides` ),
+		method: 'POST',
+		data: { disabled },
+	} );
 }

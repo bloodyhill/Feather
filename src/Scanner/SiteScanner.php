@@ -63,6 +63,36 @@ final class SiteScanner {
 	}
 
 	/**
+	 * Rescan a single post and persist its row, leaving any in-progress
+	 * site-wide scan alone.
+	 *
+	 * Used by the post-save auto-rescan listener so toggling gated features
+	 * remains accurate when content changes between full scans. Returns true
+	 * when the post was parsed and persisted; false when the post can't be
+	 * scanned (no Elementor data, missing table, parse error).
+	 *
+	 * @param int $post_id Post id to rescan.
+	 */
+	public function rescan_post( int $post_id ): bool {
+		if ( $post_id <= 0 ) {
+			return false;
+		}
+		if ( ! $this->repository->table_exists() ) {
+			return false;
+		}
+
+		try {
+			$result = $this->parser->parse( $post_id );
+		} catch ( \Throwable $e ) {
+			return false;
+		}
+
+		$post     = get_post( $post_id );
+		$modified = $post instanceof \WP_Post ? (string) $post->post_modified_gmt : '';
+		return $this->repository->save( $result, $modified );
+	}
+
+	/**
 	 * Begin a new scan. Replaces any in-progress scan.
 	 *
 	 * @return ScanState The fresh state.

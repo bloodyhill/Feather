@@ -60,6 +60,9 @@ final class ImageDimensionsAdder extends AbstractOptimizer {
 		if ( ! is_string( $html ) || '' === $html || is_admin() ) {
 			return is_string( $html ) ? $html : '';
 		}
+		if ( $this->is_disabled_for_current_request() ) {
+			return $html;
+		}
 		if ( false === stripos( $html, '<img' ) ) {
 			return $html;
 		}

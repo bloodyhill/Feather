@@ -5,7 +5,11 @@
 
 export type FeatureRisk = 'safe' | 'gated' | 'risky';
 export type FeatureImpact = 'low' | 'medium' | 'high';
-export type FeatureRecommendation = 'safe' | 'scan_recommended' | 'risky' | 'dangerous';
+export type FeatureRecommendation =
+	| 'safe'
+	| 'scan_recommended'
+	| 'risky'
+	| 'dangerous';
 export type FeatureCategory =
 	| 'elementor'
 	| 'wp'
@@ -28,16 +32,17 @@ export interface Feature {
 	risk: FeatureRisk;
 	impact: FeatureImpact;
 	default_enabled: boolean;
+	/**
+	 * When true, this feature is surfaced through a composite UI element
+	 * (e.g. the Dashboard "Block Elementor telemetry" toggle) and should
+	 * not render as its own card on the Features page.
+	 */
+	hidden?: boolean;
 	enabled: boolean;
 	recommendation: FeatureRecommendation;
 }
 
-export type ScanState =
-	| 'idle'
-	| 'running'
-	| 'complete'
-	| 'failed'
-	| 'canceled';
+export type ScanState = 'idle' | 'running' | 'complete' | 'failed' | 'canceled';
 
 export interface ScanStatus {
 	state: ScanState;
@@ -56,6 +61,8 @@ export interface ScanAggregate {
 	fa_icons_usage_count: number;
 	google_fonts_usage_count: number;
 	lottie_usage_count: number;
+	global_classes_usage_count?: number;
+	has_atomic_widgets_anywhere?: boolean;
 	widget_counts: Record< string, number >;
 	asset_counts: Record< string, number >;
 	last_scanned_at: number | null;
@@ -77,7 +84,9 @@ export interface ScanResultsPage {
 export type DbToolName =
 	| 'transients'
 	| 'elementor_revisions'
-	| 'oembed_cache';
+	| 'oembed_cache'
+	| 'spam_comments'
+	| 'auto_drafts';
 
 export interface DbAutoloadEntry {
 	option_name: string;
@@ -96,10 +105,13 @@ export interface DbHealth {
 	expired_transients: number;
 	elementor_orphan_revisions: number;
 	oembed_cached_entries: number;
+	spam_comments: number;
+	auto_drafts: number;
 }
 
 export interface DbCleanupResult {
 	deleted: number;
+	remaining?: number;
 	health: DbHealth;
 }
 
@@ -114,6 +126,9 @@ export interface PageWeightSnapshot {
 	total_assets: number;
 	measured_at: number;
 	http_status: number;
+	response_ms?: number;
+	ttfb_ms?: number;
+	largest_image_bytes?: number;
 	error: string | null;
 	recorded_at?: string;
 }
@@ -165,6 +180,43 @@ export interface SettingsResponse {
 	theme: Theme;
 	usage_opt_in: boolean;
 	optimizers_paused: boolean;
+	advanced?: {
+		heartbeat?: HeartbeatAdvanced;
+		experiments?: Record< string, boolean >;
+	};
+}
+
+export interface HeartbeatAdvanced {
+	frontend_disabled: boolean;
+	editor_interval: number;
+	admin_interval: number;
+}
+
+export interface SettingsExport {
+	kind: 'feather-settings-export';
+	export_version: number;
+	feather_version: string;
+	schema_version: number;
+	generated_at: string;
+	settings: {
+		preset: Preset;
+		theme: Theme;
+		usage_opt_in: boolean;
+		optimizers_paused: boolean;
+		features: Record< string, boolean >;
+		advanced: Record< string, unknown >;
+	};
+}
+
+export interface SettingsImportSummary {
+	applied: boolean;
+	feature_count: number;
+	unknown_features: string[];
+}
+
+export interface PostOverrides {
+	post_id: number;
+	disabled: string[];
 }
 
 export interface BootstrapPayload {

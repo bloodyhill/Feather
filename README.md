@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/icons/Feather.png" alt="Feather Performance" width="128" height="128" />
+<img src="assets/icons/Feather.png" alt="Feather Performance" width="160" height="160" />
 
 # Feather Performance
 
@@ -11,7 +11,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b?logo=wordpress&logoColor=white)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?logo=php&logoColor=white)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
-[![Version](https://img.shields.io/badge/version-0.2.4-orange.svg)](feather-performance.php)
+[![Version](https://img.shields.io/badge/version-0.2.9-e37339.svg)](feather-performance.php)
 
 </div>
 

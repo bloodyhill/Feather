@@ -95,6 +95,22 @@ final class FeatureMetadata {
 	private $optimizer_class;
 
 	/**
+	 * When true, the feature is omitted from the Features-page listing.
+	 *
+	 * Use this for component features that are surfaced through a composite
+	 * UI elsewhere (e.g. the Dashboard "Block Elementor telemetry" toggle
+	 * controls three component feature ids — we don't also want them to
+	 * appear as separate cards on Features).
+	 *
+	 * The setting still applies at runtime; the optimizer still runs when
+	 * the feature is enabled; bulk-update REST calls still operate on it.
+	 * It just doesn't render as its own card.
+	 *
+	 * @var bool
+	 */
+	private $hidden;
+
+	/**
 	 * Hydrate metadata from a definition array.
 	 *
 	 * @param array<string, mixed> $args Definition array.
@@ -107,9 +123,20 @@ final class FeatureMetadata {
 		$this->risk            = isset( $args['risk'] ) ? (string) $args['risk'] : self::RISK_SAFE;
 		$this->impact          = isset( $args['impact'] ) ? (string) $args['impact'] : self::IMPACT_LOW;
 		$this->default_enabled = ! empty( $args['default_enabled'] );
+		$this->hidden          = ! empty( $args['hidden'] );
 		$this->optimizer_class = isset( $args['optimizer'] ) && is_string( $args['optimizer'] )
 			? $args['optimizer']
 			: null;
+	}
+
+	/**
+	 * Whether this feature should be hidden from the Features-page listing.
+	 *
+	 * Composite-bundled features (those controlled by a Dashboard composite
+	 * toggle) set this to true so they don't show as duplicate cards.
+	 */
+	public function is_hidden(): bool {
+		return $this->hidden;
 	}
 
 	/**
@@ -182,6 +209,7 @@ final class FeatureMetadata {
 			'risk'            => $this->risk,
 			'impact'          => $this->impact,
 			'default_enabled' => $this->default_enabled,
+			'hidden'          => $this->hidden,
 		);
 	}
 }

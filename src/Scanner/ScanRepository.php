@@ -279,6 +279,7 @@ final class ScanRepository {
 			'fa_icons_usage_count'        => 0,
 			'google_fonts_usage_count'    => 0,
 			'lottie_usage_count'          => 0,
+			'global_classes_usage_count'  => 0,
 			'has_atomic_widgets_anywhere' => false,
 			'widget_counts'               => array(),
 			'asset_counts'                => array(),
@@ -324,6 +325,9 @@ final class ScanRepository {
 			}
 			if ( ! empty( $flags['uses_lottie'] ) ) {
 				++$result['lottie_usage_count'];
+			}
+			if ( ! empty( $flags['uses_global_classes'] ) ) {
+				++$result['global_classes_usage_count'];
 			}
 			if ( ! empty( $flags['has_atomic_widgets'] ) ) {
 				$result['has_atomic_widgets_anywhere'] = true;

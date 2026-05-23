@@ -65,7 +65,7 @@ final class ExperimentForcer extends AbstractOptimizer {
 	);
 
 	public function id(): string {
-		return 'f.elementor.force_experiments';
+		return 'f.elementor.experiments';
 	}
 
 	public function apply(): void {

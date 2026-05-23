@@ -1,10 +1,10 @@
-=== Feather - Elementor Optimizer, Asset Cleanup, Page Speed, Database Tools ===
+=== Feather – Elementor Performance Optimizer | Asset Cleanup, Page Speed & Database Cleanup ===
 Contributors: featherr
 Tags: elementor, performance, optimization, page speed, asset cleanup
 Requires at least: 6.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 0.2.7
+Stable tag: 0.2.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -67,6 +67,27 @@ Yes, in compatible mode (per-site configuration). Network-level controls are pla
 5. Dashboard in dark mode.
 
 == Changelog ==
+
+= 0.2.9 =
+* Fixed: "Remove Edit with Elementor from the admin bar" optimizer now actually removes the node. Elementor 4.0.x registers the node late in the `admin_bar_menu` lifecycle, so the previous priority-999 hook fired before the node was added and removed nothing. Switched to `wp_before_admin_bar_render` (which fires after all menu callbacks complete) and added a CSS belt-and-braces hide that guarantees the item never renders even if a third party re-adds the node after our removal.
+* Fixed: The three Elementor telemetry component features (telemetry, phone-home, AI module) no longer appear as duplicate cards on the Features page. They're surfaced through the Dashboard "Block Elementor telemetry" composite toggle; the underlying optimizers still apply at runtime.
+* Fixed: Site Scan results now appear as soon as the scan completes instead of requiring a page refresh. The polling tick now refreshes aggregate + results progressively (every 1.5 s) so the UI converges in real time even when object caches briefly desync the scan state.
+
+= 0.2.8 =
+* New: WordPress 7.0 and Elementor 4.0.9 compatibility. Tested up to WordPress 7.0; scanner recognises Elementor 4.0.x atomic Self-Hosted Video and standalone Video elements.
+* New: Dashboard "Block Elementor telemetry" toggle. A single switch bundles Elementor's tracker flags, my.elementor.com phone-home (banners, what's-new feed, update prompts, upsells), and the AI editor bundle.
+* New: Optimizer that removes the "Edit with Elementor" item from the WordPress admin bar at the top of the site. Post-edit screen buttons still open the editor as usual.
+* New: Background auto-rescan on post save. When an Elementor page is saved, Feather refreshes that post's scan row so gated optimizations stay accurate without a manual rescan. Throttled to one rescan per 60 seconds per post.
+* New: Per-page feature overrides. A sidebar meta box on the post edit screen lets you disable specific Feather features on a single page without touching the sitewide setting. Wired into JS defer, frontend asset gate, per-page asset trim, iframe lazy-load, image dimensions, and below-fold rendering.
+* New: Settings export / import. Download your Feather configuration as JSON and re-import on another site. Scan history and metrics history are not included.
+* New: Core Web Vitals signals on the Dashboard. The page-weight probe now records response time, a TTFB estimate, and the hero-image byte size (HEAD-probed for same-origin images).
+* New: Elementor 4.0.x Global Classes detection in the site scan. Gated optimizers can now factor in Global Class usage when deciding whether a handle is safe to strip.
+* New: Database cleanup adds Spam Comments and Auto-Draft Posts tools. Batched in groups of 200 per click.
+* Changed: Pause-all card copy clarified — the toggle is now explicitly labeled "Pause all optimizations for editing", with a Resume optimizations button in the paused state.
+* Changed: The three Elementor experiment-forcing toggles (`force_experiments`, `force_extra_experiments`, `element_cache`) are now one feature card, "Force-enable Elementor performance experiments". Existing installs keep their behavior — sub-toggles for the extra experiments and element cache live under `advanced.experiments`.
+* Changed: Heartbeat throttler now tunes the block editor and other admin pages separately, with the public-frontend disable still default-on.
+* Fixed: Brand mark in the topbar briefly rendered the wrong variant (cream on a light page or vice versa) when the OS color preference disagreed with the saved Feather theme. The theme is now applied synchronously and passed down to the mark.
+* Fixed: Several pre-existing lint warnings (nested ternaries, unused catch bindings) cleaned up across the admin UI.
 
 = 0.2.7 =
 * Fixed: Optimizations briefly showed as "not applied" after toggling them, on sites using persistent object caches (Redis, Memcached, LiteSpeed). The settings option now busts the WordPress options cache explicitly after every save so follow-up requests see the canonical database value immediately.

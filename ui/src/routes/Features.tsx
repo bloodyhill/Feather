@@ -30,7 +30,13 @@ export default function Features(): JSX.Element {
 
 	useEffect( () => {
 		fetchFeatures()
-			.then( ( res ) => setFeatures( res.features ) )
+			// Hide features that are surfaced through a composite Dashboard
+			// toggle (e.g. "Block Elementor telemetry") so they don't render
+			// as duplicate cards here. They remain in the REST response so the
+			// composite card can still read their state.
+			.then( ( res ) =>
+				setFeatures( res.features.filter( ( f ) => ! f.hidden ) )
+			)
 			.catch( ( err: Error ) => setError( err.message ) );
 	}, [] );
 
@@ -40,11 +46,16 @@ export default function Features(): JSX.Element {
 			const updated = await toggleFeature( id, next );
 			setFeatures( ( prev ) =>
 				prev
-					? prev.map( ( f ) => ( f.id === id ? { ...f, ...updated } : f ) )
+					? prev.map( ( f ) =>
+							f.id === id ? { ...f, ...updated } : f
+					  )
 					: prev
 			);
 		} catch ( err ) {
-			const msg = err instanceof Error ? err.message : __( 'Toggle failed.', 'feather-performance' );
+			const msg =
+				err instanceof Error
+					? err.message
+					: __( 'Toggle failed.', 'feather-performance' );
 			setError( msg );
 		} finally {
 			setPendingId( null );
@@ -53,7 +64,11 @@ export default function Features(): JSX.Element {
 
 	if ( error ) {
 		return (
-			<Notice status="error" isDismissible onRemove={ () => setError( null ) }>
+			<Notice
+				status="error"
+				isDismissible
+				onRemove={ () => setError( null ) }
+			>
 				{ error }
 			</Notice>
 		);
@@ -77,19 +92,36 @@ export default function Features(): JSX.Element {
 					<h2>{ CATEGORY_LABELS[ cat ] ?? cat }</h2>
 					<div className="feather-feature-grid">
 						{ grouped[ cat ].map( ( feat ) => (
-							<Card key={ feat.id } className="feather-feature-card">
+							<Card
+								key={ feat.id }
+								className="feather-feature-card"
+							>
 								<CardHeader>
 									<strong>{ feat.label }</strong>
 									<RiskBadge feature={ feat } />
 								</CardHeader>
 								<CardBody>
-									<p className="feather-feature-desc">{ feat.description }</p>
+									<p className="feather-feature-desc">
+										{ feat.description }
+									</p>
 									<ToggleControl
 										__nextHasNoMarginBottom
-										label={ feat.enabled ? __( 'Enabled', 'feather-performance' ) : __( 'Disabled', 'feather-performance' ) }
+										label={
+											feat.enabled
+												? __(
+														'Enabled',
+														'feather-performance'
+												  )
+												: __(
+														'Disabled',
+														'feather-performance'
+												  )
+										}
 										checked={ feat.enabled }
 										disabled={ pendingId === feat.id }
-										onChange={ ( next: boolean ) => handleToggle( feat.id, next ) }
+										onChange={ ( next: boolean ) =>
+											handleToggle( feat.id, next )
+										}
 									/>
 								</CardBody>
 							</Card>
@@ -109,14 +141,19 @@ function RiskBadge( { feature }: { feature: Feature } ): JSX.Element {
 		dangerous: __( 'Will break your site', 'feather-performance' ),
 	};
 	const r = feature.recommendation;
-	const klass =
-		r === 'scan_recommended'
-			? 'gated'
-			: r === 'dangerous'
-			? 'risky'
-			: r;
+	const klass = ( (): string => {
+		if ( r === 'scan_recommended' ) {
+			return 'gated';
+		}
+		if ( r === 'dangerous' ) {
+			return 'risky';
+		}
+		return r;
+	} )();
 	return (
-		<span className={ `feather-badge feather-badge--${ klass }` }>{ labels[ r ] }</span>
+		<span className={ `feather-badge feather-badge--${ klass }` }>
+			{ labels[ r ] }
+		</span>
 	);
 }
 

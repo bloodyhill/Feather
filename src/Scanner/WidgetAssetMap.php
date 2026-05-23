@@ -245,14 +245,20 @@ final class WidgetAssetMap {
 		// the eicons font in Elementor 4.x (see `Frontend::register_styles`).
 		// "eicons" is only the CSS font-family name, not an enqueue handle.
 		return array(
-			'icon-box'     => array( 'elementor-icons', 'elementor-icons-fa-solid' ),
-			'icon-list'    => array( 'elementor-icons' ),
-			'social-icons' => array( 'elementor-icons', 'elementor-icons-fa-brands' ),
-			'icon'         => array( 'elementor-icons' ),
-			// Atomic element: e-tabs is not registered in widgets_manager (it's
-			// an element type), so introspection returns nothing for it. The
-			// tabs-handler script pulls in the rest of the v4 chain via WP deps.
-			'e-tabs'       => array( 'elementor-tabs-handler' ),
+			'icon-box'             => array( 'elementor-icons', 'elementor-icons-fa-solid' ),
+			'icon-list'            => array( 'elementor-icons' ),
+			'social-icons'         => array( 'elementor-icons', 'elementor-icons-fa-brands' ),
+			'icon'                 => array( 'elementor-icons' ),
+			// Atomic elements: not registered in widgets_manager (they're element
+			// types), so introspection returns nothing for them. Their handler
+			// scripts pull in the rest of the v4 chain via WP deps.
+			'e-tabs'               => array( 'elementor-tabs-handler' ),
+			// Atomic Self-Hosted Video — Elementor 4.0.x. Loads its own handler
+			// to bind play/pause/poster controls; the same handler also covers
+			// the e-video element type when present.
+			'e-self-hosted-video'  => array( 'elementor-video-handler' ),
+			// Atomic YouTube — Elementor 4.0.x.
+			'e-youtube'            => array( 'elementor-youtube-handler' ),
 		);
 	}
 }

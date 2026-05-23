@@ -72,6 +72,9 @@ final class FrontendAssetGate extends AbstractOptimizer {
 	 * Drop Elementor frontend assets when this request doesn't need them.
 	 */
 	public function maybe_dequeue(): void {
+		if ( $this->is_disabled_for_current_request() ) {
+			return;
+		}
 		if ( $this->detector->current_request_uses_elementor() ) {
 			return;
 		}

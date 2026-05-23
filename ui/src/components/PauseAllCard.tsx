@@ -1,6 +1,13 @@
 import { useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Button, Card, CardBody, Notice, Spinner, ToggleControl } from '@wordpress/components';
+import {
+	Button,
+	Card,
+	CardBody,
+	Notice,
+	Spinner,
+	ToggleControl,
+} from '@wordpress/components';
 import { fetchSettings, updateSettings } from '../api/client';
 
 /**
@@ -50,7 +57,10 @@ export default function PauseAllCard(): JSX.Element {
 			setError(
 				err instanceof Error
 					? err.message
-					: __( 'Could not update pause setting.', 'feather-performance' )
+					: __(
+							'Could not update pause setting.',
+							'feather-performance'
+					  )
 			);
 		} finally {
 			setPending( false );
@@ -72,18 +82,25 @@ export default function PauseAllCard(): JSX.Element {
 			<Card className="feather-pause-card feather-pause-card--paused">
 				<CardBody>
 					{ error && (
-						<Notice status="error" isDismissible onRemove={ () => setError( null ) }>
+						<Notice
+							status="error"
+							isDismissible
+							onRemove={ () => setError( null ) }
+						>
 							{ error }
 						</Notice>
 					) }
 					<div className="feather-pause-card-row">
 						<div className="feather-pause-card-text">
 							<strong>
-								{ __( 'All optimizations paused', 'feather-performance' ) }
+								{ __(
+									'Editing mode active — Feather optimizations paused',
+									'feather-performance'
+								) }
 							</strong>
 							<small>
 								{ __(
-									'Your site is currently running unoptimized. Click Resume when you\'re done editing.',
+									"Every Feather optimization is temporarily off while you edit the site in Elementor or another builder. Click Resume optimizations when you're done so visitors get the optimized version again.",
 									'feather-performance'
 								) }
 							</small>
@@ -94,7 +111,10 @@ export default function PauseAllCard(): JSX.Element {
 							disabled={ pending }
 							onClick={ () => toggle( false ) }
 						>
-							{ __( 'Resume', 'feather-performance' ) }
+							{ __(
+								'Resume optimizations',
+								'feather-performance'
+							) }
 						</Button>
 					</div>
 				</CardBody>
@@ -106,18 +126,25 @@ export default function PauseAllCard(): JSX.Element {
 		<Card className="feather-pause-card">
 			<CardBody>
 				{ error && (
-					<Notice status="error" isDismissible onRemove={ () => setError( null ) }>
+					<Notice
+						status="error"
+						isDismissible
+						onRemove={ () => setError( null ) }
+					>
 						{ error }
 					</Notice>
 				) }
 				<div className="feather-pause-card-row">
 					<div className="feather-pause-card-text">
 						<strong>
-							{ __( 'Pause all optimizations', 'feather-performance' ) }
+							{ __(
+								'Pause all optimizations for editing',
+								'feather-performance'
+							) }
 						</strong>
 						<small>
 							{ __(
-								'Turn off temporarily while editing in Elementor. Your site behaves as if Feather wasn\'t installed.',
+								'Turn on while editing in Elementor. All Feather optimizations stay off until you flip it back.',
 								'feather-performance'
 							) }
 						</small>

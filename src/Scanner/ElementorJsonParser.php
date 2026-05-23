@@ -53,6 +53,7 @@ final class ElementorJsonParser {
 		'e-paragraph',
 		'e-self-hosted-video',
 		'e-svg',
+		'e-video',
 		'e-youtube',
 	);
 
@@ -121,6 +122,10 @@ final class ElementorJsonParser {
 			'uses_fa_icons'       => false,
 			'uses_lottie'         => false,
 			'has_atomic_widgets'  => false,
+			// True when Elementor 4.0.x Global Classes are referenced anywhere
+			// on the page. Gated optimizers consult this so they don't strip an
+			// asset handle that a Global Class style depends on.
+			'uses_global_classes' => false,
 		);
 	}
 
@@ -163,6 +168,23 @@ final class ElementorJsonParser {
 					&& ! in_array( $el_type, $types, true )
 				) {
 					$types[] = $el_type;
+				}
+			}
+
+			// Global Classes detection — Elementor 4.0.x stores referenced
+			// Global Class ids on the element under settings.classes or
+			// settings._cssid_classes depending on the node shape. The presence
+			// of any non-empty class reference here is what we surface;
+			// per-class style impact is computed at render time by Elementor.
+			if ( isset( $node['settings'] ) && is_array( $node['settings'] ) ) {
+				$classes_raw = $node['settings']['classes'] ?? null;
+				if ( null === $classes_raw ) {
+					$classes_raw = $node['settings']['_cssid_classes'] ?? null;
+				}
+				if ( is_array( $classes_raw ) && ! empty( $classes_raw ) ) {
+					$flags['uses_global_classes'] = true;
+				} elseif ( is_string( $classes_raw ) && '' !== trim( $classes_raw ) ) {
+					$flags['uses_global_classes'] = true;
 				}
 			}
 

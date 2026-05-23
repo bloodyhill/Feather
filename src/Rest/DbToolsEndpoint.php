@@ -35,6 +35,8 @@ final class DbToolsEndpoint implements RouteRegistrar {
 		DbToolsService::TOOL_TRANSIENTS,
 		DbToolsService::TOOL_ELEMENTOR_REVISIONS,
 		DbToolsService::TOOL_OEMBED_CACHE,
+		DbToolsService::TOOL_SPAM_COMMENTS,
+		DbToolsService::TOOL_AUTO_DRAFTS,
 	);
 
 	/**
@@ -156,6 +158,12 @@ final class DbToolsEndpoint implements RouteRegistrar {
 				break;
 			case DbToolsService::TOOL_OEMBED_CACHE:
 				$result = $this->service->cleanup_oembed();
+				break;
+			case DbToolsService::TOOL_SPAM_COMMENTS:
+				$result = $this->service->cleanup_spam_comments();
+				break;
+			case DbToolsService::TOOL_AUTO_DRAFTS:
+				$result = $this->service->cleanup_auto_drafts();
 				break;
 			default:
 				$result = array( 'deleted' => 0 );

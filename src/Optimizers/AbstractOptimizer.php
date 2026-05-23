@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace Feather\Optimizers;
 
+use Feather\PostOverrides\OverridesRepository;
 use Feather\Settings\SettingsRepository;
 
 defined( 'ABSPATH' ) || exit;
@@ -88,5 +89,22 @@ abstract class AbstractOptimizer {
 	 */
 	public function priority(): int {
 		return 10;
+	}
+
+	/**
+	 * Whether this optimizer should skip work for the current request because
+	 * the queried post opted out via the per-page overrides meta box.
+	 *
+	 * Frontend-affecting callbacks should call this at the top and return
+	 * early when it reports true. Returns false in admin / REST / cron / CLI
+	 * contexts so the override never interferes with WP-admin or background
+	 * work.
+	 */
+	protected function is_disabled_for_current_request(): bool {
+		static $repository = null;
+		if ( null === $repository ) {
+			$repository = new OverridesRepository();
+		}
+		return $repository->is_disabled_for_current_request( $this->id() );
 	}
 }

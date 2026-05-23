@@ -3,7 +3,7 @@
  * Plugin Name:       Feather
  * Plugin URI:        https://featherplugin.com/
  * Description:       Strip unused Elementor assets per page, measure page weight, and clean your database from one dashboard.
- * Version:           0.2.7
+ * Version:           0.2.9
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Feather
@@ -37,7 +37,7 @@ declare( strict_types=1 );
 defined( 'ABSPATH' ) || exit;
 
 // Plugin meta constants.
-define( 'FEATHER_VERSION', '0.2.7' );
+define( 'FEATHER_VERSION', '0.2.9' );
 define( 'FEATHER_FILE', __FILE__ );
 define( 'FEATHER_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FEATHER_URL', plugin_dir_url( __FILE__ ) );

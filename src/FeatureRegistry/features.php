@@ -10,6 +10,7 @@
 declare( strict_types=1 );
 
 use Feather\FeatureRegistry\FeatureMetadata;
+use Feather\Optimizers\Elementor\AdminBarEditLinkRemover;
 use Feather\Optimizers\Elementor\AdminBloatDisabler;
 use Feather\Optimizers\Elementor\AdminTopBarOptimizer;
 use Feather\Optimizers\Elementor\AiModuleDisabler;
@@ -19,10 +20,8 @@ use Feather\Optimizers\Elementor\CssOverridesEmitter;
 use Feather\Optimizers\Elementor\CssPrintMethodEnforcer;
 use Feather\Optimizers\Elementor\DomBloatRemover;
 use Feather\Optimizers\Elementor\EiconsDisabler;
-use Feather\Optimizers\Elementor\ElementCacheForcer;
 use Feather\Optimizers\Elementor\ElementorHostFirewall;
 use Feather\Optimizers\Elementor\ExperimentForcer;
-use Feather\Optimizers\Elementor\ExtraExperimentForcer;
 use Feather\Optimizers\Elementor\FA4ShimDisabler;
 use Feather\Optimizers\Elementor\FrontendAssetGate;
 use Feather\Optimizers\Elementor\FrontendLocalizeTrimmer;
@@ -70,35 +69,22 @@ return array(
 		'default_enabled' => false,
 		'optimizer'       => PerPageAssetTrimmer::class,
 	),
+	// One consolidated feature card replaces the three Elementor experiment-forcing toggles
+	// (force_experiments / force_extra_experiments / element_cache) that shipped through 0.2.7.
+	// Sub-toggles live under `advanced.experiments` in settings and decide which of the three
+	// underlying optimizer classes get instantiated. The Plugin orchestrator reads that
+	// advanced map directly; the FeatureMetadata.optimizer here points at the safe-by-default
+	// optimizer (ExperimentForcer) so the feature gate / registry still has a class to anchor
+	// the feature to.
 	array(
-		'id'              => 'f.elementor.force_experiments',
+		'id'              => 'f.elementor.experiments',
 		'label'           => __( 'Force-enable Elementor performance experiments', 'feather-performance' ),
-		'description'     => __( 'Force Elementor\'s inline-SVG icons and optimized-markup experiments active. Stops icon-font enqueues, strips wrapper divs.', 'feather-performance' ),
+		'description'     => __( 'Force Elementor\'s SVG icons and optimized-markup experiments active. Advanced sub-toggles add e_optimized_assets_loading / e_lazyload / e_css_smooth_scroll and e_element_cache.', 'feather-performance' ),
 		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
 		'risk'            => FeatureMetadata::RISK_SAFE,
 		'impact'          => FeatureMetadata::IMPACT_HIGH,
 		'default_enabled' => true,
 		'optimizer'       => ExperimentForcer::class,
-	),
-	array(
-		'id'              => 'f.elementor.force_extra_experiments',
-		'label'           => __( 'Force-enable extra Elementor experiments (advanced)', 'feather-performance' ),
-		'description'     => __( 'Force e_optimized_assets_loading, e_lazyload, and e_css_smooth_scroll active. Run Elementor → Tools → Regenerate Files & Data first.', 'feather-performance' ),
-		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
-		'risk'            => FeatureMetadata::RISK_GATED,
-		'impact'          => FeatureMetadata::IMPACT_MEDIUM,
-		'default_enabled' => false,
-		'optimizer'       => ExtraExperimentForcer::class,
-	),
-	array(
-		'id'              => 'f.elementor.element_cache',
-		'label'           => __( 'Cache per-widget Elementor render output', 'feather-performance' ),
-		'description'     => __( 'Force e_element_cache active. Caches per-widget render output; biggest TTFB win on widget-heavy pages. Custom third-party widgets may serve stale output.', 'feather-performance' ),
-		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
-		'risk'            => FeatureMetadata::RISK_GATED,
-		'impact'          => FeatureMetadata::IMPACT_HIGH,
-		'default_enabled' => false,
-		'optimizer'       => ElementCacheForcer::class,
 	),
 	array(
 		'id'              => 'f.elementor.fa4_shim',
@@ -189,6 +175,8 @@ return array(
 		'impact'          => FeatureMetadata::IMPACT_LOW,
 		'default_enabled' => true,
 		'optimizer'       => TelemetryDisabler::class,
+		// Surfaced through the Dashboard "Block Elementor telemetry" composite.
+		'hidden'          => true,
 	),
 	array(
 		'id'              => 'f.elementor.admin_bloat',
@@ -199,6 +187,16 @@ return array(
 		'impact'          => FeatureMetadata::IMPACT_LOW,
 		'default_enabled' => true,
 		'optimizer'       => AdminBloatDisabler::class,
+	),
+	array(
+		'id'              => 'f.elementor.admin_bar_edit_link',
+		'label'           => __( 'Remove "Edit with Elementor" from the admin bar', 'feather-performance' ),
+		'description'     => __( 'Hide the floating "Edit with Elementor" link in the WordPress admin bar. The post-edit screen button still opens the editor as usual.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_SAFE,
+		'impact'          => FeatureMetadata::IMPACT_LOW,
+		'default_enabled' => false,
+		'optimizer'       => AdminBarEditLinkRemover::class,
 	),
 	array(
 		'id'              => 'f.elementor.admin_top_bar',
@@ -219,6 +217,8 @@ return array(
 		'impact'          => FeatureMetadata::IMPACT_MEDIUM,
 		'default_enabled' => false,
 		'optimizer'       => AiModuleDisabler::class,
+		// Surfaced through the Dashboard "Block Elementor telemetry" composite.
+		'hidden'          => true,
 	),
 	array(
 		'id'              => 'f.elementor.api_fetcher',
@@ -229,6 +229,8 @@ return array(
 		'impact'          => FeatureMetadata::IMPACT_LOW,
 		'default_enabled' => true,
 		'optimizer'       => ApiFetcherDisabler::class,
+		// Surfaced through the Dashboard "Block Elementor telemetry" composite.
+		'hidden'          => true,
 	),
 	array(
 		'id'              => 'f.elementor.network_firewall',
@@ -279,6 +281,16 @@ return array(
 		'impact'          => FeatureMetadata::IMPACT_MEDIUM,
 		'default_enabled' => false,
 		'optimizer'       => CssOverridesEmitter::class,
+	),
+	array(
+		'id'              => 'f.scanner.auto_rescan',
+		'label'           => __( 'Auto-rescan pages when saved', 'feather-performance' ),
+		'description'     => __( 'When an Elementor page is saved, refresh its scan row in the background so gated optimizations stay accurate without a manual rescan.', 'feather-performance' ),
+		'category'        => FeatureMetadata::CATEGORY_ELEMENTOR,
+		'risk'            => FeatureMetadata::RISK_SAFE,
+		'impact'          => FeatureMetadata::IMPACT_LOW,
+		'default_enabled' => true,
+		'optimizer'       => null,
 	),
 	array(
 		'id'              => 'f.elementor.widget_lazy_init',

@@ -20,15 +20,21 @@ use Feather\Metrics\MetricsRepository;
 use Feather\Metrics\PageWeightProbe;
 use Feather\Onboarding\OnboardingState;
 use Feather\Optimizers\AbstractOptimizer;
+use Feather\Optimizers\Elementor\ElementCacheForcer;
+use Feather\Optimizers\Elementor\ExtraExperimentForcer;
+use Feather\PostOverrides\MetaBox as PostOverridesMetaBox;
+use Feather\PostOverrides\OverridesRepository;
 use Feather\Rest\DbToolsEndpoint;
 use Feather\Rest\FeaturesEndpoint;
 use Feather\Rest\MetricsEndpoint;
 use Feather\Rest\OnboardingEndpoint;
+use Feather\Rest\PostOverridesEndpoint;
 use Feather\Rest\RestController;
 use Feather\Rest\ScanEndpoint;
 use Feather\Rest\SettingsEndpoint;
 use Feather\Rest\SystemInfoEndpoint;
 use Feather\Scanner\ElementorJsonParser;
+use Feather\Scanner\PostSaveRescanListener;
 use Feather\Scanner\ScanRepository;
 use Feather\Scanner\SiteScanner;
 use Feather\Scanner\WidgetAssetMap;
@@ -44,7 +50,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class Plugin {
 
-	public const VERSION = '0.2.7';
+	public const VERSION = '0.2.9';
 
 	/**
 	 * Process-wide instance for the `feather_plugin()` global helper.
@@ -296,7 +302,10 @@ final class Plugin {
 		$this->container->singleton(
 			SettingsEndpoint::class,
 			static function ( Container $c ): SettingsEndpoint {
-				return new SettingsEndpoint( $c->get( SettingsRepository::class ) );
+				return new SettingsEndpoint(
+					$c->get( SettingsRepository::class ),
+					$c->get( FeatureRegistry::class )
+				);
 			}
 		);
 
@@ -379,6 +388,33 @@ final class Plugin {
 		);
 
 		$this->container->singleton(
+			OverridesRepository::class,
+			static function (): OverridesRepository {
+				return new OverridesRepository();
+			}
+		);
+
+		$this->container->singleton(
+			PostOverridesMetaBox::class,
+			static function ( Container $c ): PostOverridesMetaBox {
+				return new PostOverridesMetaBox(
+					$c->get( FeatureRegistry::class ),
+					$c->get( OverridesRepository::class )
+				);
+			}
+		);
+
+		$this->container->singleton(
+			PostOverridesEndpoint::class,
+			static function ( Container $c ): PostOverridesEndpoint {
+				return new PostOverridesEndpoint(
+					$c->get( OverridesRepository::class ),
+					$c->get( FeatureRegistry::class )
+				);
+			}
+		);
+
+		$this->container->singleton(
 			RestController::class,
 			static function ( Container $c ): RestController {
 				return new RestController(
@@ -390,7 +426,20 @@ final class Plugin {
 						$c->get( MetricsEndpoint::class ),
 						$c->get( OnboardingEndpoint::class ),
 						$c->get( SystemInfoEndpoint::class ),
+						$c->get( PostOverridesEndpoint::class ),
 					)
+				);
+			}
+		);
+
+		// PostSaveRescanListener — auto-rescan single post when saved.
+		// Reads its own enable flag, so wiring here is always-on.
+		$this->container->singleton(
+			PostSaveRescanListener::class,
+			static function ( Container $c ): PostSaveRescanListener {
+				return new PostSaveRescanListener(
+					$c->get( SettingsRepository::class ),
+					$c->get( SiteScanner::class )
 				);
 			}
 		);
@@ -400,11 +449,13 @@ final class Plugin {
 		$this->container->get( Capability::class )->register();
 		$this->container->get( RestController::class )->register();
 		$this->container->get( SiteScanner::class )->register_hooks();
+		$this->container->get( PostSaveRescanListener::class )->register();
 
 		// Admin-only registrations.
 		if ( is_admin() ) {
 			$this->container->get( AdminMenu::class )->register();
 			$this->container->get( AssetEnqueue::class )->register();
+			$this->container->get( PostOverridesMetaBox::class )->register();
 		}
 	}
 
@@ -439,6 +490,41 @@ final class Plugin {
 			}
 
 			$optimizer->apply();
+		}
+
+		// Consolidated experiment feature — the registry only references
+		// ExperimentForcer (svg + optimized markup, default-on). The advanced
+		// sub-toggles decide whether to also apply the extra-experiment forcer
+		// and the per-widget element cache forcer.
+		$this->apply_experiment_sub_optimizers( $settings );
+	}
+
+	/**
+	 * Apply optional sub-optimizers belonging to the consolidated
+	 * `f.elementor.experiments` feature card.
+	 */
+	private function apply_experiment_sub_optimizers( SettingsRepository $settings ): void {
+		if ( ! $settings->is_enabled( 'f.elementor.experiments' ) ) {
+			return;
+		}
+
+		$all      = $settings->all();
+		$advanced = isset( $all['advanced']['experiments'] ) && is_array( $all['advanced']['experiments'] )
+			? $all['advanced']['experiments']
+			: array();
+
+		if ( ! empty( $advanced['extra'] ) ) {
+			$opt = new ExtraExperimentForcer( $settings );
+			if ( $opt->is_safe() ) {
+				$opt->apply();
+			}
+		}
+
+		if ( ! empty( $advanced['element_cache'] ) ) {
+			$opt = new ElementCacheForcer( $settings );
+			if ( $opt->is_safe() ) {
+				$opt->apply();
+			}
 		}
 	}
 }

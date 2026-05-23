@@ -29,7 +29,7 @@ defined( 'ABSPATH' ) || exit;
 final class SettingsRepository {
 
 	public const OPTION_KEY     = 'feather_settings';
-	public const SCHEMA_VERSION = 1;
+	public const SCHEMA_VERSION = 2;
 
 	public const PRESET_CONSERVATIVE = 'conservative';
 	public const PRESET_BALANCED     = 'balanced';
@@ -39,6 +39,14 @@ final class SettingsRepository {
 	public const THEME_SYSTEM = 'system';
 	public const THEME_LIGHT  = 'light';
 	public const THEME_DARK   = 'dark';
+
+	// Heartbeat per-context defaults (seconds for editor/admin; bool for frontend).
+	public const HEARTBEAT_EDITOR_DEFAULT   = 60;
+	public const HEARTBEAT_ADMIN_DEFAULT    = 60;
+	public const HEARTBEAT_EDITOR_MIN       = 15;
+	public const HEARTBEAT_EDITOR_MAX       = 600;
+	public const HEARTBEAT_ADMIN_MIN        = 15;
+	public const HEARTBEAT_ADMIN_MAX        = 600;
 
 	/**
 	 * In-memory cache of the merged settings array. Null until first read.
@@ -150,6 +158,66 @@ final class SettingsRepository {
 	}
 
 	/**
+	 * Read advanced settings for the consolidated heartbeat feature.
+	 *
+	 * Shape: [
+	 *   'frontend_disabled' => bool,  // remove heartbeat from public frontend
+	 *   'editor_interval'   => int,   // seconds, clamped to [15, 600]
+	 *   'admin_interval'    => int,   // seconds, clamped to [15, 600]
+	 * ]
+	 *
+	 * @return array{frontend_disabled: bool, editor_interval: int, admin_interval: int}
+	 */
+	public function heartbeat_advanced(): array {
+		$all     = $this->all();
+		$raw     = isset( $all['advanced']['heartbeat'] ) && is_array( $all['advanced']['heartbeat'] )
+			? $all['advanced']['heartbeat']
+			: array();
+		$editor  = isset( $raw['editor_interval'] ) ? (int) $raw['editor_interval'] : self::HEARTBEAT_EDITOR_DEFAULT;
+		$admin   = isset( $raw['admin_interval'] ) ? (int) $raw['admin_interval'] : self::HEARTBEAT_ADMIN_DEFAULT;
+		$front   = array_key_exists( 'frontend_disabled', $raw ) ? (bool) $raw['frontend_disabled'] : true;
+
+		return array(
+			'frontend_disabled' => $front,
+			'editor_interval'   => max( self::HEARTBEAT_EDITOR_MIN, min( self::HEARTBEAT_EDITOR_MAX, $editor ) ),
+			'admin_interval'    => max( self::HEARTBEAT_ADMIN_MIN, min( self::HEARTBEAT_ADMIN_MAX, $admin ) ),
+		);
+	}
+
+	/**
+	 * Write advanced settings for the consolidated heartbeat feature.
+	 *
+	 * Each key is optional; only provided keys overwrite.
+	 *
+	 * @param array<string, mixed> $advanced Partial advanced settings.
+	 */
+	public function set_heartbeat_advanced( array $advanced ): void {
+		$current = $this->heartbeat_advanced();
+		if ( array_key_exists( 'frontend_disabled', $advanced ) ) {
+			$current['frontend_disabled'] = (bool) $advanced['frontend_disabled'];
+		}
+		if ( array_key_exists( 'editor_interval', $advanced ) ) {
+			$current['editor_interval'] = max(
+				self::HEARTBEAT_EDITOR_MIN,
+				min( self::HEARTBEAT_EDITOR_MAX, (int) $advanced['editor_interval'] )
+			);
+		}
+		if ( array_key_exists( 'admin_interval', $advanced ) ) {
+			$current['admin_interval'] = max(
+				self::HEARTBEAT_ADMIN_MIN,
+				min( self::HEARTBEAT_ADMIN_MAX, (int) $advanced['admin_interval'] )
+			);
+		}
+
+		$all                              = $this->all();
+		if ( ! isset( $all['advanced'] ) || ! is_array( $all['advanced'] ) ) {
+			$all['advanced'] = array();
+		}
+		$all['advanced']['heartbeat'] = $current;
+		$this->save( $all );
+	}
+
+	/**
 	 * Default settings.
 	 *
 	 * @return array<string, mixed>
@@ -162,6 +230,13 @@ final class SettingsRepository {
 			'theme'             => self::THEME_LIGHT,
 			'usage_opt_in'      => false,
 			'optimizers_paused' => false,
+			'advanced'          => array(
+				'heartbeat' => array(
+					'frontend_disabled' => true,
+					'editor_interval'   => self::HEARTBEAT_EDITOR_DEFAULT,
+					'admin_interval'    => self::HEARTBEAT_ADMIN_DEFAULT,
+				),
+			),
 		);
 	}
 }

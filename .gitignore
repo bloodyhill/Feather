@@ -30,6 +30,23 @@ build/
 # --- WordPress.org listing assets (live only in the SVN repo's /assets/) ---
 assets/img/Screenshot*.png
 assets/img/screenshot-*.png
+# Defensive: don't ever ship wp.org listing artwork from the repo root or
+# from /assets/. These belong in the SVN /assets/ folder, not in trunk.
+/banner-*.png
+/icon-*.png
+/screenshot-*.png
+
+# --- Tooling / agent context (never relevant to the published plugin) ---
+.claude/
+.cursor/
+CLAUDE.md
+AGENTS.md
+.aider*
+
+# --- SVN-related local state (we use SVN only via dist/svn/, but if a
+# stray .svn ever lands at the repo root or elsewhere outside dist/,
+# don't ship it) ---
+.svn/
 
 # --- Editor / IDE ---
 .idea/

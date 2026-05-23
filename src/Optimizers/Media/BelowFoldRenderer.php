@@ -72,6 +72,9 @@ final class BelowFoldRenderer extends AbstractOptimizer {
 	 *       add custom CSS for an unusual size.
 	 */
 	public function enqueue_styles(): void {
+		if ( $this->is_disabled_for_current_request() ) {
+			return;
+		}
 		$rules = array(
 			'.feather-cv{content-visibility:auto;contain-intrinsic-size:0 800px}',
 		);

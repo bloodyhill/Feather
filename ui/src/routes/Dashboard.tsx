@@ -17,6 +17,7 @@ import {
 	setOnboardingState,
 	toggleFeature,
 } from '../api/client';
+import ElementorTelemetryCard from '../components/ElementorTelemetryCard';
 import PauseAllCard from '../components/PauseAllCard';
 import type {
 	Feature,
@@ -29,7 +30,9 @@ export default function Dashboard(): JSX.Element {
 	const [ features, setFeatures ] = useState< Feature[] | null >( null );
 	const [ latest, setLatest ] = useState< PageWeightSnapshot | null >( null );
 	const [ history, setHistory ] = useState< MetricsHistory | null >( null );
-	const [ onboarding, setOnboarding ] = useState< OnboardingStatus | null >( null );
+	const [ onboarding, setOnboarding ] = useState< OnboardingStatus | null >(
+		null
+	);
 	const [ error, setError ] = useState< string | null >( null );
 	const [ measuring, setMeasuring ] = useState( false );
 	const [ flashId, setFlashId ] = useState< string | null >( null );
@@ -71,13 +74,18 @@ export default function Dashboard(): JSX.Element {
 			// a write, so the canonical /latest endpoint is the source of truth.
 			const [ fresh, hist ] = await Promise.all( [
 				fetchLatestMetrics().catch( () => null ),
-				fetchMetricsHistory( 30 ).catch( () => ( { rows: [], count: 0 } ) ),
+				fetchMetricsHistory( 30 ).catch( () => ( {
+					rows: [],
+					count: 0,
+				} ) ),
 			] );
 			setLatest( fresh );
 			setHistory( hist );
 		} catch ( err ) {
 			setError(
-				err instanceof Error ? err.message : __( 'Measurement failed.', 'feather-performance' )
+				err instanceof Error
+					? err.message
+					: __( 'Measurement failed.', 'feather-performance' )
 			);
 		} finally {
 			setMeasuring( false );
@@ -88,7 +96,7 @@ export default function Dashboard(): JSX.Element {
 		try {
 			const next = await setOnboardingState( 'completed' );
 			setOnboarding( next );
-		} catch ( _ ) {
+		} catch {
 			// Non-fatal — banner stays.
 		}
 	}
@@ -99,12 +107,16 @@ export default function Dashboard(): JSX.Element {
 			const updated = await toggleFeature( id, true );
 			setFeatures( ( prev ) =>
 				prev
-					? prev.map( ( f ) => ( f.id === id ? { ...f, ...updated } : f ) )
+					? prev.map( ( f ) =>
+							f.id === id ? { ...f, ...updated } : f
+					  )
 					: prev
 			);
 		} catch ( err ) {
 			setError(
-				err instanceof Error ? err.message : __( 'Could not enable feature.', 'feather-performance' )
+				err instanceof Error
+					? err.message
+					: __( 'Could not enable feature.', 'feather-performance' )
 			);
 		} finally {
 			setFlashId( null );
@@ -112,7 +124,10 @@ export default function Dashboard(): JSX.Element {
 	}
 
 	const stats = useMemo( () => computeStats( features ?? [] ), [ features ] );
-	const quickWins = useMemo( () => pickQuickWins( features ?? [] ), [ features ] );
+	const quickWins = useMemo(
+		() => pickQuickWins( features ?? [] ),
+		[ features ]
+	);
 	const showBanner = onboarding?.show_banner === true;
 
 	if ( ! features ) {
@@ -126,23 +141,29 @@ export default function Dashboard(): JSX.Element {
 	return (
 		<div className="feather-dashboard">
 			{ error && (
-				<Notice status="error" isDismissible onRemove={ () => setError( null ) }>
+				<Notice
+					status="error"
+					isDismissible
+					onRemove={ () => setError( null ) }
+				>
 					{ error }
 				</Notice>
 			) }
 
 			<PauseAllCard />
 
+			<ElementorTelemetryCard />
+
 			{ showBanner && (
-				<WelcomeBanner
-					stats={ stats }
-					onDismiss={ dismissBanner }
-				/>
+				<WelcomeBanner stats={ stats } onDismiss={ dismissBanner } />
 			) }
 
 			<div className="feather-hero-row">
 				<HeroTile
-					label={ __( 'Optimizations active', 'feather-performance' ) }
+					label={ __(
+						'Optimizations active',
+						'feather-performance'
+					) }
 					value={ String( stats.activeCount ) }
 					trail={ sprintf(
 						/* translators: %d total feature count */
@@ -165,7 +186,11 @@ export default function Dashboard(): JSX.Element {
 				/>
 				<HeroTile
 					label={ __( 'Last measured', 'feather-performance' ) }
-					value={ latest ? formatRelative( latest.recorded_at ?? '' ) : __( 'Never', 'feather-performance' ) }
+					value={
+						latest
+							? formatRelative( latest.recorded_at ?? '' )
+							: __( 'Never', 'feather-performance' )
+					}
 					trail={
 						<Button
 							variant="primary"
@@ -175,20 +200,101 @@ export default function Dashboard(): JSX.Element {
 						>
 							{ measuring
 								? __( 'Measuring…', 'feather-performance' )
-								: __( 'Take measurement', 'feather-performance' ) }
+								: __(
+										'Take measurement',
+										'feather-performance'
+								  ) }
 						</Button>
 					}
 				/>
 			</div>
 
+			{ latest && hasVitals( latest ) && (
+				<Card>
+					<CardHeader>
+						<h2>
+							{ __(
+								'Core Web Vitals signals',
+								'feather-performance'
+							) }
+						</h2>
+						<span className="feather-text-muted-mono">
+							{ __(
+								'measured from your server',
+								'feather-performance'
+							) }
+						</span>
+					</CardHeader>
+					<CardBody>
+						<div className="feather-hero-row">
+							<HeroTile
+								label={ __(
+									'Response time',
+									'feather-performance'
+								) }
+								value={
+									latest.response_ms
+										? `${ latest.response_ms } ms`
+										: '—'
+								}
+								trail={ __(
+									'Total time for the homepage GET.',
+									'feather-performance'
+								) }
+							/>
+							<HeroTile
+								label={ __(
+									'TTFB (estimate)',
+									'feather-performance'
+								) }
+								value={
+									latest.ttfb_ms
+										? `${ latest.ttfb_ms } ms`
+										: '—'
+								}
+								trail={ __(
+									"Approximated when transport timing isn't available.",
+									'feather-performance'
+								) }
+							/>
+							<HeroTile
+								label={ __(
+									'Hero image size',
+									'feather-performance'
+								) }
+								value={
+									latest.largest_image_bytes
+										? formatBytes(
+												latest.largest_image_bytes
+										  )
+										: '—'
+								}
+								trail={ __(
+									'First <img> in HTML, HEAD-probed. Skipped for cross-origin images.',
+									'feather-performance'
+								) }
+							/>
+						</div>
+					</CardBody>
+				</Card>
+			) }
+
 			{ history && history.rows.length > 1 && (
 				<Card>
 					<CardHeader>
-						<h2>{ __( 'Homepage weight over time', 'feather-performance' ) }</h2>
+						<h2>
+							{ __(
+								'Homepage weight over time',
+								'feather-performance'
+							) }
+						</h2>
 						<span className="feather-text-muted-mono">
 							{ sprintf(
 								/* translators: %d snapshot count */
-								__( 'last %d snapshots', 'feather-performance' ),
+								__(
+									'last %d snapshots',
+									'feather-performance'
+								),
 								history.rows.length
 							) }
 						</span>
@@ -210,7 +316,10 @@ export default function Dashboard(): JSX.Element {
 					<CardBody>
 						<ul className="feather-quickwin-list">
 							{ quickWins.map( ( feat ) => (
-								<li key={ feat.id } className="feather-quickwin">
+								<li
+									key={ feat.id }
+									className="feather-quickwin"
+								>
 									<div className="feather-quickwin-text">
 										<strong>{ feat.label }</strong>
 										<small>{ feat.description }</small>
@@ -219,9 +328,14 @@ export default function Dashboard(): JSX.Element {
 										variant="primary"
 										isBusy={ flashId === feat.id }
 										disabled={ flashId === feat.id }
-										onClick={ () => handleQuickWin( feat.id ) }
+										onClick={ () =>
+											handleQuickWin( feat.id )
+										}
 									>
-										{ __( 'Enable', 'feather-performance' ) }
+										{ __(
+											'Enable',
+											'feather-performance'
+										) }
 									</Button>
 								</li>
 							) ) }
@@ -255,7 +369,12 @@ function WelcomeBanner( {
 						/>
 					) }
 					<div className="feather-welcome-text">
-						<h2>{ __( 'Welcome to Feather', 'feather-performance' ) }</h2>
+						<h2>
+							{ __(
+								'Welcome to Feather',
+								'feather-performance'
+							) }
+						</h2>
 						<p>
 							{ sprintf(
 								/* translators: %d count of optimizations */
@@ -270,7 +389,9 @@ function WelcomeBanner( {
 					<div className="feather-welcome-actions">
 						<Button
 							variant="primary"
-							href={ `${ window.feather?.boot?.adminUrl ?? '' }admin.php?page=feather-scan` }
+							href={ `${
+								window.feather?.boot?.adminUrl ?? ''
+							}admin.php?page=feather-scan` }
 						>
 							{ __( 'Run scan now', 'feather-performance' ) }
 						</Button>
@@ -315,7 +436,9 @@ function Sparkline( { rows }: { rows: PageWeightSnapshot[] } ): JSX.Element {
 		.map( ( v, i ) => {
 			const x = i * stepX;
 			const y = height - ( ( v - min ) / range ) * height;
-			return `${ i === 0 ? 'M' : 'L' }${ x.toFixed( 1 ) },${ y.toFixed( 1 ) }`;
+			return `${ i === 0 ? 'M' : 'L' }${ x.toFixed( 1 ) },${ y.toFixed(
+				1
+			) }`;
 		} )
 		.join( ' ' );
 
@@ -327,7 +450,10 @@ function Sparkline( { rows }: { rows: PageWeightSnapshot[] } ): JSX.Element {
 				height={ height }
 				preserveAspectRatio="none"
 				role="img"
-				aria-label={ __( 'Homepage weight history', 'feather-performance' ) }
+				aria-label={ __(
+					'Homepage weight history',
+					'feather-performance'
+				) }
 			>
 				<path
 					d={ path }
@@ -343,6 +469,14 @@ function Sparkline( { rows }: { rows: PageWeightSnapshot[] } ): JSX.Element {
 				<span>{ formatBytes( max ) }</span>
 			</div>
 		</div>
+	);
+}
+
+function hasVitals( snapshot: PageWeightSnapshot ): boolean {
+	return Boolean(
+		( snapshot.response_ms && snapshot.response_ms > 0 ) ||
+			( snapshot.ttfb_ms && snapshot.ttfb_ms > 0 ) ||
+			( snapshot.largest_image_bytes && snapshot.largest_image_bytes > 0 )
 	);
 }
 
@@ -365,6 +499,7 @@ function pickQuickWins( features: Feature[] ): Feature[] {
 		.filter(
 			( f ) =>
 				! f.enabled &&
+				! f.hidden &&
 				( f.impact === 'high' || f.impact === 'medium' ) &&
 				f.recommendation !== 'dangerous' &&
 				f.recommendation !== 'risky'

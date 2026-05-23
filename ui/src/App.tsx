@@ -35,7 +35,10 @@ const ROUTE_IDS: ReadonlyArray< RouteId > = [
 ];
 
 function isRouteId( value: unknown ): value is RouteId {
-	return typeof value === 'string' && ( ROUTE_IDS as readonly string[] ).includes( value );
+	return (
+		typeof value === 'string' &&
+		( ROUTE_IDS as readonly string[] ).includes( value )
+	);
 }
 
 function applyTheme( theme: Theme ): void {
@@ -58,10 +61,16 @@ export default function App(): JSX.Element {
 	const [ route, setRoute ] = useState< RouteId >( initialRoute );
 	const [ theme, setTheme ] = useState< Theme >( boot?.theme ?? 'system' );
 
-	// Apply the initial theme once on mount.
+	// Apply data-theme synchronously *before* the first render commits so the
+	// brand mark and any CSS variables that key off [data-theme] see the
+	// correct value on the initial paint. Without this the Mark briefly reads
+	// 'system' and shows the wrong variant when the OS preference disagrees
+	// with the saved Feather theme.
+	applyTheme( theme );
+
+	// Re-apply on every theme change (handles toggle clicks).
 	useEffect( () => {
 		applyTheme( theme );
-		// Subsequent setTheme calls re-run this effect.
 	}, [ theme ] );
 
 	// React to OS-level theme changes when in 'system' mode.
@@ -79,7 +88,7 @@ export default function App(): JSX.Element {
 		<div className="feather-app">
 			<header className="feather-topbar">
 				<div className="feather-wordmark">
-					<Mark size={ 22 } />
+					<Mark size={ 22 } theme={ theme } />
 					<span className="feather-wordmark-text">feather</span>
 				</div>
 				<div className="feather-topbar-actions">

@@ -14,13 +14,19 @@ use Feather\Optimizers\AbstractOptimizer;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Stretches the admin heartbeat from 15s to 60s and removes the heartbeat
- * script entirely on the public frontend, where its only consumer would be
- * a logged-in admin browsing their own site.
+ * Per-context heartbeat tuning.
+ *
+ * Three knobs live under settings.advanced.heartbeat:
+ *   frontend_disabled: whether to drop heartbeat from the public frontend (bool)
+ *   editor_interval:   block-editor / Gutenberg interval in seconds (15-600)
+ *   admin_interval:    other wp-admin pages interval in seconds (15-600)
+ *
+ * Editor and admin are tuned separately because the block editor uses
+ * heartbeat for autosaves and post locking, where killing it outright would
+ * break collaboration. Other admin pages — Tools, Plugins, the Feather
+ * dashboard itself — see no benefit from a fast heartbeat.
  */
 final class HeartbeatThrottler extends AbstractOptimizer {
-
-	public const ADMIN_INTERVAL_SECONDS = 60;
 
 	public function id(): string {
 		return 'f.wp.heartbeat';
@@ -32,26 +38,51 @@ final class HeartbeatThrottler extends AbstractOptimizer {
 	}
 
 	/**
-	 * Stretch the admin heartbeat interval.
+	 * Stretch the heartbeat interval according to the active context.
 	 *
 	 * @param mixed $settings Heartbeat settings.
 	 * @return array
 	 */
 	public function lengthen_interval( $settings ) {
+		$advanced = $this->settings->heartbeat_advanced();
+		$interval = $this->is_block_editor_request()
+			? $advanced['editor_interval']
+			: $advanced['admin_interval'];
+
 		if ( ! is_array( $settings ) ) {
-			return array( 'interval' => self::ADMIN_INTERVAL_SECONDS );
+			return array( 'interval' => $interval );
 		}
-		$settings['interval'] = self::ADMIN_INTERVAL_SECONDS;
+		$settings['interval'] = $interval;
 		return $settings;
 	}
 
 	/**
-	 * Drop heartbeat from the frontend entirely.
+	 * Drop heartbeat from the frontend entirely, unless the user opts to keep
+	 * it on.
 	 */
 	public function deregister_on_frontend(): void {
 		if ( is_admin() ) {
 			return;
 		}
+		$advanced = $this->settings->heartbeat_advanced();
+		if ( ! $advanced['frontend_disabled'] ) {
+			return;
+		}
 		wp_deregister_script( 'heartbeat' );
+	}
+
+	/**
+	 * Whether the current admin request is a block-editor page.
+	 *
+	 * We can't use wp_is_block_editor() here because it depends on the
+	 * current_screen being set, and heartbeat_settings fires earlier than
+	 * that. The pagenow / GET fallback is the same heuristic core uses.
+	 */
+	private function is_block_editor_request(): bool {
+		global $pagenow;
+		if ( in_array( $pagenow, array( 'post.php', 'post-new.php', 'site-editor.php' ), true ) ) {
+			return true;
+		}
+		return false;
 	}
 }

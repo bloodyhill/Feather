@@ -52,6 +52,9 @@ final class JsDeferer extends AbstractOptimizer {
 		if ( ! is_string( $tag ) || ! is_string( $handle ) ) {
 			return $tag;
 		}
+		if ( $this->is_disabled_for_current_request() ) {
+			return $tag;
+		}
 		if ( ! in_array( $handle, self::DEFER_HANDLES, true ) ) {
 			return $tag;
 		}

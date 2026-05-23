@@ -27,6 +27,10 @@ final class DbToolsService {
 	public const TOOL_ELEMENTOR_REVISIONS = 'elementor_revisions';
 	public const TOOL_OEMBED_CACHE       = 'oembed_cache';
 	public const TOOL_AUTOLOAD_AUDIT     = 'autoload_audit';
+	public const TOOL_SPAM_COMMENTS      = 'spam_comments';
+	public const TOOL_AUTO_DRAFTS        = 'auto_drafts';
+
+	public const BATCH_LIMIT = 200;
 
 	/**
 	 * Composite "health" snapshot for the dashboard tile.
@@ -39,6 +43,8 @@ final class DbToolsService {
 		$transient_count = $this->count_expired_transients();
 		$revisions_count = $this->count_orphan_elementor_revisions();
 		$oembed_count    = $this->count_oembed_transients();
+		$spam_count      = $this->count_spam_comments();
+		$auto_drafts     = $this->count_auto_drafts();
 
 		// Score: 100 - penalties, clamped 0..100.
 		$score = 100;
@@ -58,6 +64,14 @@ final class DbToolsService {
 		if ( $oembed_count > 100 ) {
 			$score -= 5;
 		}
+		if ( $spam_count > 200 ) {
+			$score -= 10;
+		} elseif ( $spam_count > 50 ) {
+			$score -= 5;
+		}
+		if ( $auto_drafts > 50 ) {
+			$score -= 5;
+		}
 		$score = max( 0, min( 100, $score ) );
 
 		return array(
@@ -67,6 +81,8 @@ final class DbToolsService {
 			'expired_transients'          => $transient_count,
 			'elementor_orphan_revisions'  => $revisions_count,
 			'oembed_cached_entries'       => $oembed_count,
+			'spam_comments'               => $spam_count,
+			'auto_drafts'                 => $auto_drafts,
 		);
 	}
 
@@ -236,5 +252,97 @@ final class DbToolsService {
 			)
 		);
 		return array( 'deleted' => max( 0, $deleted ) );
+	}
+
+	/**
+	 * Count comments marked as spam.
+	 */
+	public function count_spam_comments(): int {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->comments} WHERE comment_approved = %s",
+				'spam'
+			)
+		);
+	}
+
+	/**
+	 * Delete spam comments in batches. Returns the number deleted.
+	 *
+	 * @return array{deleted: int, remaining: int}
+	 */
+	public function cleanup_spam_comments(): array {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT comment_ID FROM {$wpdb->comments} WHERE comment_approved = %s LIMIT %d",
+				'spam',
+				self::BATCH_LIMIT
+			)
+		);
+
+		$deleted = 0;
+		foreach ( (array) $ids as $id ) {
+			$comment_id = (int) $id;
+			if ( $comment_id > 0 && wp_delete_comment( $comment_id, true ) ) {
+				++$deleted;
+			}
+		}
+
+		return array(
+			'deleted'   => $deleted,
+			'remaining' => $this->count_spam_comments(),
+		);
+	}
+
+	/**
+	 * Count posts in the `auto-draft` post_status. WordPress periodically
+	 * leaves these behind when users click "Add New" and walk away.
+	 */
+	public function count_auto_drafts(): int {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status = %s",
+				'auto-draft'
+			)
+		);
+	}
+
+	/**
+	 * Delete auto-draft posts in batches via wp_delete_post() so attached
+	 * meta / terms / comments are cleaned up via core's hooks.
+	 *
+	 * @return array{deleted: int, remaining: int}
+	 */
+	public function cleanup_auto_drafts(): array {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT ID FROM {$wpdb->posts} WHERE post_status = %s LIMIT %d",
+				'auto-draft',
+				self::BATCH_LIMIT
+			)
+		);
+
+		$deleted = 0;
+		foreach ( (array) $ids as $id ) {
+			$post_id = (int) $id;
+			if ( $post_id > 0 && wp_delete_post( $post_id, true ) ) {
+				++$deleted;
+			}
+		}
+
+		return array(
+			'deleted'   => $deleted,
+			'remaining' => $this->count_auto_drafts(),
+		);
 	}
 }

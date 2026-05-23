@@ -41,7 +41,7 @@ export default function ThemeToggle( { value, onChange }: Props ): JSX.Element {
 		setPending( true );
 		try {
 			await updateSettings( { theme: next } );
-		} catch ( _ ) {
+		} catch {
 			// Revert on failure.
 			onChange( value );
 		} finally {
@@ -49,7 +49,8 @@ export default function ThemeToggle( { value, onChange }: Props ): JSX.Element {
 		}
 	}
 
-	const nextLabel = LABELS[ ORDER[ ( ORDER.indexOf( value ) + 1 ) % ORDER.length ] ];
+	const nextLabel =
+		LABELS[ ORDER[ ( ORDER.indexOf( value ) + 1 ) % ORDER.length ] ];
 
 	return (
 		<button
@@ -59,13 +60,19 @@ export default function ThemeToggle( { value, onChange }: Props ): JSX.Element {
 			disabled={ pending }
 			title={ sprintf(
 				/* translators: 1: current theme, 2: next theme on click */
-				__( 'Theme: %1$s. Click to switch to %2$s.', 'feather-performance' ),
+				__(
+					'Theme: %1$s. Click to switch to %2$s.',
+					'feather-performance'
+				),
 				LABELS[ value ],
 				nextLabel
 			) }
 			aria-label={ sprintf(
 				/* translators: 1: current theme, 2: next theme on click */
-				__( 'Theme: %1$s. Click to switch to %2$s.', 'feather-performance' ),
+				__(
+					'Theme: %1$s. Click to switch to %2$s.',
+					'feather-performance'
+				),
 				LABELS[ value ],
 				nextLabel
 			) }

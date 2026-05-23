@@ -147,6 +147,10 @@ final class FeaturesEndpoint implements RouteRegistrar {
 	public function list_features( WP_REST_Request $request ): WP_REST_Response {
 		unset( $request );
 
+		// Return every feature including those marked hidden — the React
+		// Features route filters them out client-side, while composite
+		// Dashboard cards (which read individual state via this same list)
+		// still get to see them.
 		$features = array();
 		foreach ( $this->registry->all() as $metadata ) {
 			$features[] = $this->serialize( $metadata );

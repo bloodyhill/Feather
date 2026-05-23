@@ -13,19 +13,46 @@ interface Props {
 }
 
 const items: NavItem[] = [
-	{ id: 'dashboard', label: __( 'Dashboard', 'feather-performance' ), pageSlug: 'feather-performance' },
-	{ id: 'features', label: __( 'Features', 'feather-performance' ), pageSlug: 'feather-features' },
-	{ id: 'scan', label: __( 'Site Scan', 'feather-performance' ), pageSlug: 'feather-scan' },
-	{ id: 'database', label: __( 'Database', 'feather-performance' ), pageSlug: 'feather-database' },
-	{ id: 'settings', label: __( 'Settings', 'feather-performance' ), pageSlug: 'feather-settings' },
-	{ id: 'about', label: __( 'About', 'feather-performance' ), pageSlug: 'feather-about' },
+	{
+		id: 'dashboard',
+		label: __( 'Dashboard', 'feather-performance' ),
+		pageSlug: 'feather-performance',
+	},
+	{
+		id: 'features',
+		label: __( 'Features', 'feather-performance' ),
+		pageSlug: 'feather-features',
+	},
+	{
+		id: 'scan',
+		label: __( 'Site Scan', 'feather-performance' ),
+		pageSlug: 'feather-scan',
+	},
+	{
+		id: 'database',
+		label: __( 'Database', 'feather-performance' ),
+		pageSlug: 'feather-database',
+	},
+	{
+		id: 'settings',
+		label: __( 'Settings', 'feather-performance' ),
+		pageSlug: 'feather-settings',
+	},
+	{
+		id: 'about',
+		label: __( 'About', 'feather-performance' ),
+		pageSlug: 'feather-about',
+	},
 ];
 
 export default function Sidebar( { current, onNavigate }: Props ): JSX.Element {
 	const adminUrl = window.feather?.boot?.adminUrl ?? '';
 
 	return (
-		<nav className="feather-sidebar" aria-label={ __( 'Feather navigation', 'feather-performance' ) }>
+		<nav
+			className="feather-sidebar"
+			aria-label={ __( 'Feather navigation', 'feather-performance' ) }
+		>
 			<ul className="feather-nav">
 				{ items.map( ( item ) => {
 					const href = `${ adminUrl }admin.php?page=${ item.pageSlug }`;
@@ -34,7 +61,9 @@ export default function Sidebar( { current, onNavigate }: Props ): JSX.Element {
 						<li key={ item.id }>
 							<a
 								href={ href }
-								className={ `feather-nav-item${ isCurrent ? ' is-current' : '' }` }
+								className={ `feather-nav-item${
+									isCurrent ? ' is-current' : ''
+								}` }
 								aria-current={ isCurrent ? 'page' : undefined }
 								onClick={ ( e ) => {
 									// Plain left-click without modifier keys → instant client-side
@@ -51,7 +80,11 @@ export default function Sidebar( { current, onNavigate }: Props ): JSX.Element {
 										onNavigate( item.id );
 										// Update the URL so deep links + browser back work.
 										if ( window.history?.pushState ) {
-											window.history.pushState( {}, '', href );
+											window.history.pushState(
+												{},
+												'',
+												href
+											);
 										}
 									}
 								} }

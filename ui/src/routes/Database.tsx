@@ -49,6 +49,26 @@ const TOOLS: ToolDef[] = [
 			),
 		count: ( h ) => h.oembed_cached_entries,
 	},
+	{
+		id: 'spam_comments',
+		label: __( 'Spam comments', 'feather-performance' ),
+		describe: () =>
+			__(
+				'Comments marked as spam by Akismet or the comment moderation system. Deleted permanently in batches of 200 per click.',
+				'feather-performance'
+			),
+		count: ( h ) => h.spam_comments,
+	},
+	{
+		id: 'auto_drafts',
+		label: __( 'Auto-draft posts', 'feather-performance' ),
+		describe: () =>
+			__(
+				'Empty drafts created when a user clicks "Add New" then walks away. Deleted permanently in batches of 200 per click.',
+				'feather-performance'
+			),
+		count: ( h ) => h.auto_drafts,
+	},
 ];
 
 export default function Database(): JSX.Element {
@@ -79,7 +99,9 @@ export default function Database(): JSX.Element {
 			);
 		} catch ( err ) {
 			setError(
-				err instanceof Error ? err.message : __( 'Cleanup failed.', 'feather-performance' )
+				err instanceof Error
+					? err.message
+					: __( 'Cleanup failed.', 'feather-performance' )
 			);
 		} finally {
 			setPending( null );
@@ -102,25 +124,43 @@ export default function Database(): JSX.Element {
 		);
 	}
 
-	const scoreLabel =
-		health.score >= 80
-			? __( 'Healthy', 'feather-performance' )
-			: health.score >= 50
-			? __( 'Could use cleanup', 'feather-performance' )
-			: __( 'Needs attention', 'feather-performance' );
+	const scoreLabel = ( (): string => {
+		if ( health.score >= 80 ) {
+			return __( 'Healthy', 'feather-performance' );
+		}
+		if ( health.score >= 50 ) {
+			return __( 'Could use cleanup', 'feather-performance' );
+		}
+		return __( 'Needs attention', 'feather-performance' );
+	} )();
 
-	const scoreClass =
-		health.score >= 80 ? 'is-success' : health.score >= 50 ? 'is-warning' : 'is-danger';
+	const scoreClass = ( (): string => {
+		if ( health.score >= 80 ) {
+			return 'is-success';
+		}
+		if ( health.score >= 50 ) {
+			return 'is-warning';
+		}
+		return 'is-danger';
+	} )();
 
 	return (
 		<div className="feather-database">
 			{ error && (
-				<Notice status="error" isDismissible onRemove={ () => setError( null ) }>
+				<Notice
+					status="error"
+					isDismissible
+					onRemove={ () => setError( null ) }
+				>
 					{ error }
 				</Notice>
 			) }
 			{ flash && (
-				<Notice status="success" isDismissible onRemove={ () => setFlash( null ) }>
+				<Notice
+					status="success"
+					isDismissible
+					onRemove={ () => setFlash( null ) }
+				>
 					{ flash }
 				</Notice>
 			) }
@@ -137,7 +177,10 @@ export default function Database(): JSX.Element {
 						<HealthScore score={ health.score } />
 						<div className="feather-health-stats">
 							<HealthStat
-								label={ __( 'Autoloaded options', 'feather-performance' ) }
+								label={ __(
+									'Autoloaded options',
+									'feather-performance'
+								) }
 								value={ formatBytes( health.autoload_bytes ) }
 								hint={ __(
 									'Loaded on every WP request. Aim for under 800KB.',
@@ -145,19 +188,39 @@ export default function Database(): JSX.Element {
 								) }
 							/>
 							<HealthStat
-								label={ __( 'Expired transients', 'feather-performance' ) }
+								label={ __(
+									'Expired transients',
+									'feather-performance'
+								) }
 								value={ String( health.expired_transients ) }
-								hint={ __( 'Stale cache rows still on disk.', 'feather-performance' ) }
+								hint={ __(
+									'Stale cache rows still on disk.',
+									'feather-performance'
+								) }
 							/>
 							<HealthStat
-								label={ __( 'Elementor revisions', 'feather-performance' ) }
-								value={ String( health.elementor_orphan_revisions ) }
-								hint={ __( 'Old revision rows we can remove.', 'feather-performance' ) }
+								label={ __(
+									'Elementor revisions',
+									'feather-performance'
+								) }
+								value={ String(
+									health.elementor_orphan_revisions
+								) }
+								hint={ __(
+									'Old revision rows we can remove.',
+									'feather-performance'
+								) }
 							/>
 							<HealthStat
-								label={ __( 'oEmbed cache', 'feather-performance' ) }
+								label={ __(
+									'oEmbed cache',
+									'feather-performance'
+								) }
 								value={ String( health.oembed_cached_entries ) }
-								hint={ __( 'Cached lookups for embedded content.', 'feather-performance' ) }
+								hint={ __(
+									'Cached lookups for embedded content.',
+									'feather-performance'
+								) }
 							/>
 						</div>
 					</div>
@@ -173,19 +236,31 @@ export default function Database(): JSX.Element {
 						<Card key={ tool.id } className="feather-db-tool">
 							<CardHeader>
 								<strong>{ tool.label }</strong>
-								<span className="feather-db-tool-count">{ count }</span>
+								<span className="feather-db-tool-count">
+									{ count }
+								</span>
 							</CardHeader>
 							<CardBody>
-								<p className="feather-feature-desc">{ tool.describe( health ) }</p>
+								<p className="feather-feature-desc">
+									{ tool.describe( health ) }
+								</p>
 								<Button
-									variant={ isEmpty ? 'secondary' : 'primary' }
+									variant={
+										isEmpty ? 'secondary' : 'primary'
+									}
 									isBusy={ isPending }
 									disabled={ isPending || isEmpty }
 									onClick={ () => handleCleanup( tool.id ) }
 								>
 									{ isEmpty
-										? __( 'Nothing to clean', 'feather-performance' )
-										: __( 'Clean up', 'feather-performance' ) }
+										? __(
+												'Nothing to clean',
+												'feather-performance'
+										  )
+										: __(
+												'Clean up',
+												'feather-performance'
+										  ) }
 								</Button>
 							</CardBody>
 						</Card>
@@ -196,13 +271,23 @@ export default function Database(): JSX.Element {
 			{ health.autoload_largest.length > 0 && (
 				<Card>
 					<CardHeader>
-						<h2>{ __( 'Largest autoloaded options', 'feather-performance' ) }</h2>
+						<h2>
+							{ __(
+								'Largest autoloaded options',
+								'feather-performance'
+							) }
+						</h2>
 					</CardHeader>
 					<CardBody>
 						<table className="feather-table">
 							<thead>
 								<tr>
-									<th>{ __( 'Option', 'feather-performance' ) }</th>
+									<th>
+										{ __(
+											'Option',
+											'feather-performance'
+										) }
+									</th>
 									<th style={ { textAlign: 'right' } }>
 										{ __( 'Size', 'feather-performance' ) }
 									</th>
@@ -230,6 +315,15 @@ export default function Database(): JSX.Element {
 
 function HealthScore( { score }: { score: number } ): JSX.Element {
 	const pct = Math.max( 0, Math.min( 100, score ) );
+	const strokeColor = ( (): string => {
+		if ( pct >= 80 ) {
+			return 'var(--feather-success)';
+		}
+		if ( pct >= 50 ) {
+			return 'var(--feather-warning)';
+		}
+		return 'var(--feather-danger)';
+	} )();
 	return (
 		<div className="feather-health-score">
 			<svg viewBox="0 0 120 120" width={ 120 } height={ 120 }>
@@ -246,13 +340,7 @@ function HealthScore( { score }: { score: number } ): JSX.Element {
 					cy={ 60 }
 					r={ 52 }
 					fill="none"
-					stroke={
-						pct >= 80
-							? 'var(--feather-success)'
-							: pct >= 50
-							? 'var(--feather-warning)'
-							: 'var(--feather-danger)'
-					}
+					stroke={ strokeColor }
 					strokeWidth={ 8 }
 					strokeLinecap="round"
 					strokeDasharray={ `${ ( pct / 100 ) * 327 } 327` }
